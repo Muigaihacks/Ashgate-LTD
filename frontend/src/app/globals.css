@@ -17,7 +17,6 @@
 
 body {
   color: var(--foreground);
-  background: var(--background);
   font-family: 'Inter', system-ui, sans-serif;
 }
 
@@ -59,6 +58,17 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
