@@ -51,24 +51,32 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-secondary-50">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-primary-100">
+      <nav className="bg-secondary-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary-600">AshGate</h1>
-              </div>
-            </div>
+            {/* Left Navigation */}
             <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Properties</a>
+              <div className="flex items-baseline space-x-6">
+                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Buy</a>
+                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Rent</a>
+                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Sell</a>
                 <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Agents</a>
-                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Services</a>
-                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
-                <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Contact</a>
               </div>
             </div>
+            
+            {/* Center Logo */}
+            <div className="flex-shrink-0">
+              <h1 className="text-3xl font-bold text-primary-600">AshGate</h1>
+            </div>
+            
+            {/* Right Navigation */}
             <div className="flex items-center space-x-4">
+              <div className="hidden md:block">
+                <div className="flex items-baseline space-x-4">
+                  <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Services</a>
+                  <a href="#" className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                </div>
+              </div>
               <button className="text-accent-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
                 Sign In
               </button>
@@ -81,7 +89,7 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary-50 to-secondary-100 py-20">
+      <section className="relative bg-secondary-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-accent-500 mb-6">
@@ -188,18 +196,18 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-accent-500 text-white py-12">
+      <footer className="bg-primary-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-2xl font-bold mb-4">AshGate</h3>
-              <p className="text-accent-200">
+              <p className="text-primary-100">
                 Your trusted partner in real estate across East Africa.
               </p>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Properties</h4>
-              <ul className="space-y-2 text-accent-200">
+              <ul className="space-y-2 text-primary-100">
                 <li><a href="#" className="hover:text-white">Houses</a></li>
                 <li><a href="#" className="hover:text-white">Apartments</a></li>
                 <li><a href="#" className="hover:text-white">Land</a></li>
@@ -208,7 +216,7 @@ export default function HomePage() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Services</h4>
-              <ul className="space-y-2 text-accent-200">
+              <ul className="space-y-2 text-primary-100">
                 <li><a href="#" className="hover:text-white">Property Management</a></li>
                 <li><a href="#" className="hover:text-white">Valuation</a></li>
                 <li><a href="#" className="hover:text-white">Legal Services</a></li>
@@ -217,14 +225,14 @@ export default function HomePage() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2 text-accent-200">
+              <ul className="space-y-2 text-primary-100">
                 <li>Email: info@ashgate.co.ke</li>
                 <li>Phone: +254 700 000 000</li>
                 <li>Nairobi, Kenya</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-accent-400 mt-8 pt-8 text-center text-accent-200">
+          <div className="border-t border-primary-400 mt-8 pt-8 text-center text-primary-100">
             <p>&copy; 2024 AshGate. All rights reserved.</p>
           </div>
         </div>
