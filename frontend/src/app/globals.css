@@ -44,10 +44,10 @@ body {
   background: #8b4513;
 }
 
-/* Smooth transitions */
-* {
+/* Smooth transitions - temporarily disabled for debugging */
+/* * {
   transition: all 0.2s ease-in-out;
-}
+} */
 
 /* Custom animations */
 @keyframes fadeInUp {
@@ -74,4 +74,19 @@ body {
 
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out;
+}
+
+/* Navigation button fixes */
+.nav-button {
+  position: relative;
+  z-index: 10;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nav-button:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  background-color: #fdf6f0 !important;
+  color: #8b4513 !important;
 }
