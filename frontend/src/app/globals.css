@@ -1,3 +1,12 @@
+.card-hover-raise {
+  transition: all 200ms ease;
+  border: 2px solid transparent;
+}
+.card-hover-raise:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  border-color: #f97316; /* orange-500 */
+}
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
@@ -90,3 +99,7 @@ body {
   background-color: #fdf6f0 !important;
   color: #8b4513 !important;
 }
+
+/* Hide scrollbars for horizontal carousels */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

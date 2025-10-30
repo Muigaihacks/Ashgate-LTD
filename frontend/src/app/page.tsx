@@ -1,3 +1,5 @@
+// stray code removed
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -16,10 +18,18 @@ import {
   MapPin as LocationIcon,
   ChevronDown,
   FileText,
-  BarChart3
+  BarChart3,
+  Newspaper,
+  UsersRound,
+  Bed,
+  Bath,
+  CarFront,
+  Ruler
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const [currentIconIndex, setCurrentIconIndex] = useState(0);
@@ -27,6 +37,7 @@ export default function HomePage() {
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [signInData, setSignInData] = useState({ email: '', password: '' });
   const [signUpData, setSignUpData] = useState({ 
     firstName: '', 
@@ -37,7 +48,7 @@ export default function HomePage() {
     phone: '', 
     acceptTerms: false 
   });
-  const [currentVideo, setCurrentVideo] = useState('/videos/hero-video1.mp4'); // Default fallback
+  const [currentVideo, setCurrentVideo] = useState('/videos/hero-video2.mp4'); // Fixed to video2
   const [logoStyle, setLogoStyle] = useState('bright'); // 'bright' or 'dark' based on video
   const [videoIndex, setVideoIndex] = useState(0);
   const [isSequentialMode, setIsSequentialMode] = useState(false); // Switched to time-based mode
@@ -72,51 +83,11 @@ export default function HomePage() {
     }
   }, [videoIndex, isSequentialMode]);
 
-  // Time-based video selection - Ready for production
+  // Fixed video selection (always video2)
   useEffect(() => {
-    if (!isSequentialMode) {
-      const getCurrentVideo = () => {
-        const now = new Date();
-        const hour = now.getHours();
-        
-        console.log('Getting video for hour:', hour);
-        
-        // Your custom schedule
-        if (hour >= 5 && hour < 10) {
-          // Morning: 5AM-10AM
-          console.log('Setting morning video');
-          return { src: '/videos/hero-video1.mp4', style: 'bright' };
-        } else if (hour >= 10 && hour < 17) {
-          // Day: 10AM-5PM
-          console.log('Setting day video');
-          return { src: '/videos/hero-video2.mp4', style: 'dark' };
-        } else if (hour >= 17 && hour < 22) {
-          // Evening: 5PM-10PM
-          console.log('Setting evening video');
-          return { src: '/videos/hero-video3.mp4', style: 'bright' };
-        } else {
-          // Night: 10PM-5AM
-          console.log('Setting night video');
-          return { src: '/videos/hero-video4.mp4', style: 'bright' };
-        }
-      };
-
-      const videoData = getCurrentVideo();
-      console.log('Setting video:', videoData);
-      setCurrentVideo(videoData.src);
-      setLogoStyle(videoData.style);
-      
-      // Update video every hour
-      const interval = setInterval(() => {
-        const newVideoData = getCurrentVideo();
-        console.log('Hourly update - setting video:', newVideoData);
-        setCurrentVideo(newVideoData.src);
-        setLogoStyle(newVideoData.style);
-      }, 60 * 60 * 1000); // Check every hour
-
-      return () => clearInterval(interval);
-    }
-  }, [isSequentialMode]);
+    setCurrentVideo('/videos/hero-video2.mp4');
+    setLogoStyle('dark');
+  }, []);
 
   // Real estate icons for rotation - more detailed and professional
   const realEstateIcons = [
@@ -145,6 +116,113 @@ export default function HomePage() {
     { icon: <Trees className="w-8 h-8" />, label: 'Land', count: '2,145' },
     { icon: <Landmark className="w-8 h-8" />, label: 'Commercial', count: '423' },
   ];
+
+  // Featured listings data (stubbed for now). Wire to backend later.
+  const featuredListings = [
+    {
+      id: 1,
+      title: 'Modern 3BR Apartment',
+      price: 'KSh 18.5M',
+      listingType: 'sale',
+      location: 'Westlands, Nairobi',
+      details: '3 bed • 2 bath • 145m²',
+      specs: { beds: 3, baths: 2, parking: 1, area: 145, year: 2019 },
+      category: 'Apartment',
+      broker: 'Brokered by AshGate Premium Realty',
+      has3DTour: true,
+      hasFloorPlan: false,
+      coords: { lat: -1.268, lng: 36.811 }
+    },
+    {
+      id: 2,
+      title: '1/4 Acre Prime Plot',
+      price: 'KSh 6.2M',
+      listingType: 'sale',
+      location: 'Ruiru, Kiambu',
+      details: 'Serviced • Ready Title',
+      specs: { beds: 0, baths: 0, parking: 0, area: 1011, year: 0 },
+      category: 'Land',
+      broker: 'Brokered by Kiambu Lands Ltd',
+      has3DTour: false,
+      hasFloorPlan: false,
+      coords: { lat: -1.152, lng: 36.962 }
+    },
+    {
+      id: 3,
+      title: 'Commercial Office Space',
+      price: 'KSh 220K/mo',
+      listingType: 'rent',
+      location: 'Upper Hill, Nairobi',
+      details: '250m² • Parking • 24/7 Security',
+      specs: { beds: 0, baths: 2, parking: 4, area: 250, year: 2015 },
+      category: 'Commercial',
+      broker: 'Brokered by UpperHill Commercial',
+      has3DTour: false,
+      hasFloorPlan: true,
+      coords: { lat: -1.300, lng: 36.817 }
+    },
+    {
+      id: 4,
+      title: '4BR Family House',
+      price: 'KSh 32M',
+      listingType: 'sale',
+      location: 'Runda, Nairobi',
+      details: '4 bed • 4.5 bath • DSQ',
+      specs: { beds: 4, baths: 5, parking: 2, area: 320, year: 2012 },
+      category: 'House',
+      broker: 'Brokered by Runda Estates',
+      has3DTour: true,
+      hasFloorPlan: true,
+      coords: { lat: -1.223, lng: 36.832 }
+    },
+    {
+      id: 5,
+      title: 'Furnished Expat Apartment',
+      price: 'USD 1,800/mo',
+      listingType: 'rent',
+      location: 'Kilimani, Nairobi',
+      details: '2 bed • Gym • Pool',
+      specs: { beds: 2, baths: 2, parking: 1, area: 110, year: 2020 },
+      category: 'Apartment',
+      broker: 'Brokered by Kilimani Homes',
+      has3DTour: false,
+      hasFloorPlan: false,
+      coords: { lat: -1.292, lng: 36.784 }
+    },
+    {
+      id: 6,
+      title: 'Warehouse to Let',
+      price: 'KSh 380K/mo',
+      listingType: 'rent',
+      location: 'Mlolongo, Athi River',
+      details: '1,200m² • High Roof • Yard',
+      specs: { beds: 0, baths: 1, parking: 6, area: 1200, year: 2010 },
+      category: 'Industrial',
+      broker: 'Brokered by Athi Logistics',
+      has3DTour: false,
+      hasFloorPlan: false,
+      coords: { lat: -1.369, lng: 36.939 }
+    },
+  ];
+
+  const listingsScrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollListings = (direction: 'left' | 'right') => {
+    const container = listingsScrollRef.current;
+    if (!container) return;
+    const amount = container.clientWidth * 0.9; // scroll ~1 viewport of cards
+    container.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+  };
+
+  // Listing details modal state
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<typeof featuredListings[0] | null>(null);
+
+  // Expose listings for listings page (temporary until API)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__ASHGATE_LISTINGS__ = featuredListings;
+    }
+  }, [featuredListings]);
 
   const features = [
     {
@@ -191,25 +269,25 @@ export default function HomePage() {
               <div className="flex items-baseline space-x-6">
                 <button 
                   className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                  onClick={() => console.log('Buy clicked')}
+                  onClick={() => router.push('/listings?type=sale')}
                 >
                   Buy
                 </button>
                 <button 
                   className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                  onClick={() => console.log('Rent clicked')}
+                  onClick={() => router.push('/listings?type=rent')}
                 >
                   Rent
                 </button>
                 <button 
                   className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                  onClick={() => console.log('Sell clicked')}
+                  onClick={() => setIsAgentOpen(true)}
                 >
                   Sell
                 </button>
                 <button 
                   className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                  onClick={() => console.log('Agents clicked')}
+                  onClick={() => setIsAgentOpen(true)}
                 >
                   Agents
                 </button>
@@ -312,21 +390,21 @@ export default function HomePage() {
                           }, 200);
                         }}
                       >
-                        <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                        <a href="/community" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                           <Users className="w-4 h-4 mr-2" />
-                          Relevant Experts
+                          Experts
                         </a>
-                        <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                        <a href="/news" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                           <FileText className="w-4 h-4 mr-2" />
                           News & Insights
                         </a>
-                      </div>
+                </div>
                     )}
-                  </div>
+              </div>
                   
                   <button 
                     className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center"
-                    onClick={() => console.log('Property Manager clicked')}
+                    onClick={() => router.push('/community')}
                   >
                     <BarChart3 className="w-4 h-4 mr-1" />
                     <span className="text-primary-600">AshGate Property Manager</span>
@@ -366,7 +444,9 @@ export default function HomePage() {
             }}
             poster="/images/hero-placeholder.jpg"
             onError={(e) => {
-              console.error('Video loading error:', e);
+              // Silent fail; toast is handled elsewhere
+              // Force fallback image immediately
+              setCurrentVideo('');
             }}
           >
             <source src={currentVideo} type="video/mp4" />
@@ -493,7 +573,10 @@ export default function HomePage() {
                     />
                   </div>
                 </div>
-                <button className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold flex items-center justify-center transition-colors duration-200">
+                <button onClick={() => {
+                  const q = [searchQuery, searchLocation].filter(Boolean).join(' ');
+                  router.push(`/listings?type=sale&search=${encodeURIComponent(q)}`);
+                }} className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold flex items-center justify-center transition-colors duration-200">
                   Search
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </button>
@@ -514,6 +597,118 @@ export default function HomePage() {
                   <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors duration-200">{type.count} available</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Listings */}
+      <section id="listings" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-3">Featured <span className="text-primary-600">Listings</span></h2>
+            <p className="text-gray-600 max-w-3xl mx-auto">A snapshot of premium homes, apartments, land and commercial spaces on AshGate.</p>
+          </div>
+          <div className="relative">
+            <button aria-label="Prev" onClick={() => scrollListings('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow rounded-full w-10 h-10 flex items-center justify-center">
+              <span className="sr-only">Previous</span>
+              ‹
+            </button>
+            <button aria-label="Next" onClick={() => scrollListings('right')} className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow rounded-full w-10 h-10 flex items-center justify-center">
+              <span className="sr-only">Next</span>
+              ›
+            </button>
+
+            <div ref={listingsScrollRef} className="flex overflow-x-auto gap-6 snap-x snap-mandatory scrollbar-hide pb-2">
+              {featuredListings.map((item) => (
+                <div key={item.id} className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-xl overflow-hidden shadow cursor-pointer card-hover-raise" onClick={() => { setSelectedListing(item); setIsDetailsOpen(true); }}>
+                  {/* Broker */}
+                  <div className="px-5 pt-4 text-xs text-gray-500">{item.broker}</div>
+                  {/* Image area with tags */}
+                  <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300">
+                    <div className="absolute top-2 left-2 flex gap-2">
+                      {item.has3DTour && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">3D Tour</span>
+                      )}
+                      {item.hasFloorPlan && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">Floor Plan</span>
+                      )}
+                    </div>
+                    <span className="absolute bottom-2 right-2 text-xs px-3 py-1 rounded-full bg-white/90 text-gray-800 shadow">{item.category}</span>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-lg text-gray-900">{item.title}</h3>
+                      <span className="text-primary-600 font-bold">{item.price}</span>
+                    </div>
+                    <p className="text-gray-600 mb-3">{item.location} • {item.details}</p>
+                    <div className="flex items-center gap-3 text-gray-700 text-sm">
+                      {item.specs?.beds ? (
+                        <span className="inline-flex items-center gap-1"><Bed className="w-4 h-4" />{item.specs.beds}</span>
+                      ) : null}
+                      {item.specs?.baths ? (
+                        <span className="inline-flex items-center gap-1"><Bath className="w-4 h-4" />{item.specs.baths}</span>
+                      ) : null}
+                      {item.specs?.parking ? (
+                        <span className="inline-flex items-center gap-1"><CarFront className="w-4 h-4" />{item.specs.parking}</span>
+                      ) : null}
+                      {item.specs?.area ? (
+                        <span className="inline-flex items-center gap-1"><Ruler className="w-4 h-4" />{item.specs.area}m²</span>
+                      ) : null}
+                      {/* Year removed per design */}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center mt-10">
+            <button onClick={() => router.push('/listings')} className="inline-flex items-center px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors">View All Listings</button>
+          </div>
+        </div>
+      </section>
+
+      {/* Community Spotlight (replaces old CTA section) */}
+      <section id="community" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-3 inline-flex items-center gap-3 justify-center"><UsersRound className="w-8 h-8 text-primary-600" /> AshGate <span className="text-primary-600">Community</span></h2>
+            <p className="text-gray-600 max-w-3xl mx-auto">A trusted network of verified professionals who make buying, building and moving effortless.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl p-6 shadow hover:shadow-lg transition-shadow">
+              <h3 className="font-semibold text-gray-900 mb-1">Legal & Conveyancing</h3>
+              <p className="text-gray-600 text-sm">Real estate and conveyancing lawyers to safeguard your purchase.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow hover:shadow-lg transition-shadow">
+              <h3 className="font-semibold text-gray-900 mb-1">Cabro & Landscaping</h3>
+              <p className="text-gray-600 text-sm">Cabro specialists and professional landscapers for perfect outdoors.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow hover:shadow-lg transition-shadow">
+              <h3 className="font-semibold text-gray-900 mb-1">Solar & Utilities</h3>
+              <p className="text-gray-600 text-sm">Solar installers and utility experts for efficient, green living.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow hover:shadow-lg transition-shadow">
+              <h3 className="font-semibold text-gray-900 mb-1">Moving & Staging</h3>
+              <p className="text-gray-600 text-sm">Professional movers, photographers and 3D staging partners.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow hover:shadow-lg transition-shadow sm:col-span-2 lg:col-span-4">
+              <h3 className="font-semibold text-gray-900 mb-1 inline-flex items-center gap-2"><Newspaper className="w-5 h-5 text-primary-600"/> News & Insights</h3>
+              <p className="text-gray-600 text-sm">Expert-written articles and videos demystifying land and property. Example: why planting specific tree species on idle land can pay, and which trees thrive in each Kenyan region.</p>
+            </div>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow">
+              <h4 className="font-semibold text-gray-900 mb-2">How Our Community Works</h4>
+              <p className="text-gray-700 leading-relaxed">Join a growing ecosystem of vetted experts who deliver reliable services around your property journey — from due diligence and legal transfers to moving in, solar fitting and ongoing maintenance. We connect you to the right pro at the right time.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow">
+              <h4 className="font-semibold text-gray-900 mb-2">Become a Partner</h4>
+              <p className="text-gray-700 mb-4">Are you an expert? Apply to join our network and grow with AshGate clients.</p>
+              <button onClick={() => router.push('/community')} className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">Explore Community</button>
             </div>
           </div>
         </div>
@@ -561,31 +756,32 @@ export default function HomePage() {
             Join thousands of satisfied customers who found their perfect home through AshGate.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            <button onClick={() => router.push('/listings')} className="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
               Browse Properties
             </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            <button onClick={() => setIsAgentOpen(true)} className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
               List Your Property
             </button>
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+      {/* Testimonials Section (carousel with background) */}
+      <section className="py-20 bg-gray-900 relative">
+        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{backgroundImage: 'url(/images/testimonials-background.jpg)'}}></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              What Our <span className="text-primary-600">Clients</span> Say
+              <span className="text-white">What Our </span><span className="text-primary-200">Clients</span><span className="text-white"> Say</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Don&apos;t just take our word for it - hear from satisfied customers who found their perfect property through AshGate.
+            <p className="text-lg text-gray-100 max-w-3xl mx-auto leading-relaxed">
+              Don&apos;t just take our word for it — hear from satisfied customers who found their perfect property through AshGate.
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="relative">
+            <div className="flex overflow-x-auto gap-6 snap-x snap-mandatory scrollbar-hide pb-2">
             {/* Testimonial 1 */}
-            <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-primary-600 font-bold text-lg">SM</span>
@@ -606,7 +802,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 2 */}
-            <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-primary-600 font-bold text-lg">JK</span>
@@ -627,7 +823,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 3 */}
-            <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-primary-600 font-bold text-lg">AO</span>
@@ -648,7 +844,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 4 */}
-            <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-primary-600 font-bold text-lg">DN</span>
@@ -669,7 +865,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 5 */}
-            <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-primary-600 font-bold text-lg">LM</span>
@@ -690,7 +886,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 6 */}
-            <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-primary-600 font-bold text-lg">RT</span>
@@ -708,6 +904,7 @@ export default function HomePage() {
                   <Star key={i} className="w-4 h-4 fill-current" />
                 ))}
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -791,6 +988,110 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Listing Details Modal */}
+      {isDetailsOpen && selectedListing && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center overflow-y-auto p-4" onClick={() => setIsDetailsOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl mt-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">{selectedListing.title}</h3>
+                <p className="text-gray-600">{selectedListing.location}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-primary-600 font-bold text-xl">{selectedListing.price}</div>
+                <div className="text-xs text-gray-500">{selectedListing.broker}</div>
+              </div>
+            </div>
+
+            {/* Top area: gallery + sidebar CTA (Zillow-inspired) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+              <div className="lg:col-span-2">
+                <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
+                {/* Spec bar under gallery */}
+                <div className="px-6 py-3 border-t border-gray-200">
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-800">
+                    {selectedListing?.specs?.beds ? (<span className="inline-flex items-center gap-1"><Bed className="w-4 h-4"/> {selectedListing.specs.beds} Beds</span>) : null}
+                    {selectedListing?.specs?.baths ? (<span className="inline-flex items-center gap-1"><Bath className="w-4 h-4"/> {selectedListing.specs.baths} Baths</span>) : null}
+                    {selectedListing?.specs?.parking ? (<span className="inline-flex items-center gap-1"><CarFront className="w-4 h-4"/> {selectedListing.specs.parking} Parking</span>) : null}
+                    {selectedListing?.specs?.area ? (<span className="inline-flex items-center gap-1"><Ruler className="w-4 h-4"/> {selectedListing.specs.area} m²</span>) : null}
+                  </div>
+                </div>
+                <div className="px-6 py-2 text-gray-700">{selectedListing.details}</div>
+                <div className="px-6">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {selectedListing.has3DTour && (
+                      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-800 border">3D Tour</span>
+                    )}
+                    {selectedListing.hasFloorPlan && (
+                      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-800 border">Floor Plan</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <aside className="border-l border-gray-200 p-6">
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="font-semibold text-gray-900 mb-1">Contact Agent</div>
+                  <p className="text-sm text-gray-600 mb-3">Have questions or want to schedule a tour?</p>
+                  <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">Email Agent</button>
+                </div>
+                <div className="text-sm text-gray-600">Listed by: <span className="font-medium text-gray-900">{selectedListing.broker}</span></div>
+              </aside>
+            </div>
+
+            {/* Tabs with content */}
+            <div className="px-6 py-4 border-t border-gray-200">
+              <Tabs selectedListing={selectedListing} />
+            </div>
+
+            <div className="p-5 border-t border-gray-200 flex justify-end">
+              <button className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => setIsDetailsOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Agent Registration Modal */}
+      {isAgentOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsAgentOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Agent Registration</h2>
+              <button className="text-gray-500 hover:text-gray-700" onClick={() => setIsAgentOpen(false)}>✕</button>
+            </div>
+            <form className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">First Name</label>
+                <input className="w-full border rounded-lg px-3 py-2" placeholder="Jane" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Last Name</label>
+                <input className="w-full border rounded-lg px-3 py-2" placeholder="Doe" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Email</label>
+                <input type="email" className="w-full border rounded-lg px-3 py-2" placeholder="agent@example.com" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Phone</label>
+                <input className="w-full border rounded-lg px-3 py-2" placeholder="+254 7xx xxx xxx" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm text-gray-700 mb-1">Agency / Brokerage</label>
+                <input className="w-full border rounded-lg px-3 py-2" placeholder="Company name" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm text-gray-700 mb-1">About</label>
+                <textarea className="w-full border rounded-lg px-3 py-2" rows={3} placeholder="Short bio and service areas"></textarea>
+              </div>
+              <div className="md:col-span-2 flex items-center justify-between">
+                <div className="text-sm text-gray-700">Paying homage to <a href="/terms-and-conditions.html" className="underline text-primary-600">AshGate Limited&apos;s Terms & Conditions</a>, we thoroughly screen every Agent Application to keep AshGate a secure, fraud‑free environment for our users.</div>
+                <button type="button" className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700">Submit Application</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Sign In Modal */}
       {isSignInOpen && (
@@ -1026,6 +1327,154 @@ export default function HomePage() {
             </form>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Tabs component scoped in this file for simplicity
+function Tabs({ selectedListing }: { selectedListing: any }) {
+  const [active, setActive] = useState<'overview' | 'map' | 'floor' | 'tour'>('overview');
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+  const [mapToast, setMapToast] = useState<string>('');
+
+  // Load MapLibre JS/CSS on demand
+  useEffect(() => {
+    if (active !== 'map') return;
+    if (!mapRef.current) return;
+    // Inject CSS once
+    const existingCss = document.getElementById('maplibre-css');
+    if (!existingCss) {
+      const link = document.createElement('link');
+      link.id = 'maplibre-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css';
+      document.head.appendChild(link);
+    }
+    // Inject JS once
+    const ensureJs = async () => {
+      if ((window as any).maplibregl) return;
+      await new Promise<void>((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js';
+        script.onload = () => resolve();
+        document.body.appendChild(script);
+      });
+    };
+    ensureJs().then(() => {
+      const maplibregl = (window as any).maplibregl;
+      if (!maplibregl || !MAPTILER_KEY) return;
+      if (mapInstanceRef.current) return;
+      const center = [selectedListing?.coords?.lng ?? 36.8219, selectedListing?.coords?.lat ?? -1.2921];
+      const map = new maplibregl.Map({
+        container: mapRef.current!,
+        style: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
+        center,
+        zoom: 13,
+      });
+      new maplibregl.Marker().setLngLat(center).addTo(map);
+      mapInstanceRef.current = map;
+      map.on('error', () => setMapToast('Map failed to load. Check your internet or API key.'));
+      map.on('load', () => {
+        // Add simple amenity circle layers from the built-in POI source
+        const addAmenityLayer = (id: string, classes: string[], color: string) => {
+          if (map.getLayer(id)) return;
+          map.addLayer({
+            id,
+            type: 'circle',
+            source: 'openmaptiles',
+            'source-layer': 'poi',
+            filter: ['in', ['get', 'class'], ['literal', ...classes]],
+            paint: {
+              'circle-radius': 5,
+              'circle-color': color,
+              'circle-opacity': 0.9
+            }
+          });
+          map.setLayoutProperty(id, 'visibility', 'none');
+        };
+        addAmenityLayer('amenity-schools', ['school', 'college', 'university'], '#2563eb');
+        addAmenityLayer('amenity-hospitals', ['hospital', 'clinic'], '#dc2626');
+        addAmenityLayer('amenity-supermarkets', ['supermarket', 'grocery'], '#16a34a');
+        addAmenityLayer('amenity-transit', ['bus', 'bus_stop', 'tram_stop', 'station'], '#7c3aed');
+      });
+    });
+    return () => {
+      // No teardown to keep simple; modal close unmounts container
+    };
+  }, [active, MAPTILER_KEY, selectedListing]);
+
+  const amenityChips = ['Schools', 'Hospitals', 'Supermarkets', 'Transit'];
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const toggleAmenity = (a: string) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]
+    );
+  };
+
+  // Toggle amenity layer visibility when chips change
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const setVisible = (id: string, on: boolean) => {
+      if (!map.getLayer(id)) return;
+      map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    };
+    setVisible('amenity-schools', selectedAmenities.includes('Schools'));
+    setVisible('amenity-hospitals', selectedAmenities.includes('Hospitals'));
+    setVisible('amenity-supermarkets', selectedAmenities.includes('Supermarkets'));
+    setVisible('amenity-transit', selectedAmenities.includes('Transit'));
+  }, [selectedAmenities]);
+
+  return (
+    <div>
+      <div className="flex gap-4 text-sm flex-wrap">
+        <button onClick={() => setActive('overview')} className={`${active==='overview'?'font-semibold text-gray-900':'text-gray-600'}`}>Overview</button>
+        <button onClick={() => setActive('map')} className={`${active==='map'?'font-semibold text-gray-900':'text-gray-600'}`}>Map & Amenities</button>
+        <button onClick={() => setActive('floor')} className={`${active==='floor'?'font-semibold text-gray-900':'text-gray-600'}`}>Floor Plan</button>
+        <button onClick={() => setActive('tour')} className={`${active==='tour'?'font-semibold text-gray-900':'text-gray-600'}`}>3D Tour</button>
+      </div>
+      {mapToast && (
+        <div className="fixed bottom-6 right-6 z-[100] bg-black text-white text-sm px-4 py-2 rounded shadow">
+          {mapToast}
+        </div>
+      )}
+
+      {active === 'overview' && (
+        <div className="mt-4 text-gray-700">
+          <p className="mb-4">Elegant property in {selectedListing?.location}. Great connectivity and neighborhood amenities.</p>
+          <div className="flex flex-wrap gap-4 text-sm">
+            {selectedListing?.specs?.beds ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><Bed className="w-4 h-4"/> {selectedListing.specs.beds} Beds</span>) : null}
+            {selectedListing?.specs?.baths ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><Bath className="w-4 h-4"/> {selectedListing.specs.baths} Baths</span>) : null}
+            {selectedListing?.specs?.parking ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><CarFront className="w-4 h-4"/> {selectedListing.specs.parking} Parking</span>) : null}
+            {selectedListing?.specs?.area ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><Ruler className="w-4 h-4"/> {selectedListing.specs.area} m²</span>) : null}
+            {/* Year removed per design */}
+            {/* Room for more: Wifi, Pool, Gym, Backup Power, Security */}
+          </div>
+        </div>
+      )}
+
+      {active === 'map' && (
+        <div className="mt-4">
+          {!MAPTILER_KEY ? (
+            <div className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">Set NEXT_PUBLIC_MAPTILER_KEY in your env to enable the map.</div>
+          ) : null}
+          <div className="flex gap-2 flex-wrap mb-3">
+            {amenityChips.map((a) => (
+              <button key={a} onClick={() => toggleAmenity(a)} className={`px-3 py-1 rounded-full text-sm border ${selectedAmenities.includes(a)?'bg-primary-600 text-white border-primary-600':'bg-white text-gray-700 border-gray-300'}`}>{a}</button>
+            ))}
+          </div>
+          <div ref={mapRef} className="w-full h-80 rounded-lg overflow-hidden shadow bg-gray-200" />
+        </div>
+      )}
+
+      {active === 'floor' && (
+        <div className="mt-4 text-gray-700">Floor plan viewer placeholder.</div>
+      )}
+      {active === 'tour' && (
+        <div className="mt-4 text-gray-700">3D tour viewer placeholder.</div>
       )}
     </div>
   );
