@@ -24,9 +24,15 @@ import {
   Bed,
   Bath,
   CarFront,
-  Ruler
+  Ruler,
+  User,
+  Home,
+  ArrowUp,
+  Facebook,
+  Instagram
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function HomePage() {
   const router = useRouter();
@@ -35,9 +41,18 @@ export default function HomePage() {
   const [currentIconIndex, setCurrentIconIndex] = useState(0);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isSellDropdownOpen, setIsSellDropdownOpen] = useState(false);
+  const sellDropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const [isPropertyOwnerOpen, setIsPropertyOwnerOpen] = useState(false);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false); // Will be connected to auth later
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [userType, setUserType] = useState<'homeowner' | 'agent' | 'landlord' | 'tenant' | null>(null); // Will be connected to auth later
+  const [userName, setUserName] = useState<string>(''); // User's name for display
+  const [isListPropertyDropdownOpen, setIsListPropertyDropdownOpen] = useState(false);
+  const listPropertyDropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [signInData, setSignInData] = useState({ email: '', password: '' });
   const [signUpData, setSignUpData] = useState({ 
     firstName: '', 
@@ -53,6 +68,15 @@ export default function HomePage() {
   const [videoIndex, setVideoIndex] = useState(0);
   const [isSequentialMode, setIsSequentialMode] = useState(false); // Switched to time-based mode
   const [mounted, setMounted] = useState(false); // For hydration fix
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+
+  useEffect(() => {
+    if (isUserLoggedIn) {
+      setIsProfileDropdownOpen(true);
+    } else {
+      setIsProfileDropdownOpen(false);
+    }
+  }, [isUserLoggedIn]);
 
   // Video array for sequential testing
   const videos = [
@@ -65,6 +89,22 @@ export default function HomePage() {
   // Fix hydration - only render client-side
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Scroll to top button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      // Get the community section element
+      const communitySection = document.getElementById('community');
+      if (communitySection) {
+        const communityBottom = communitySection.offsetTop + communitySection.offsetHeight;
+        // Show button when scrolled past community section (when Why Choose Ashgate section starts to be visible)
+        setShowScrollToTop(window.scrollY > communityBottom - 100);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Sequential video testing - cycles through all videos
@@ -128,7 +168,8 @@ export default function HomePage() {
       details: '3 bed • 2 bath • 145m²',
       specs: { beds: 3, baths: 2, parking: 1, area: 145, year: 2019 },
       category: 'Apartment',
-      broker: 'Brokered by AshGate Premium Realty',
+      broker: 'Direct Owner',
+      source: 'owner',
       has3DTour: true,
       hasFloorPlan: false,
       coords: { lat: -1.268, lng: 36.811 }
@@ -143,6 +184,7 @@ export default function HomePage() {
       specs: { beds: 0, baths: 0, parking: 0, area: 1011, year: 0 },
       category: 'Land',
       broker: 'Brokered by Kiambu Lands Ltd',
+      source: 'agent',
       has3DTour: false,
       hasFloorPlan: false,
       coords: { lat: -1.152, lng: 36.962 }
@@ -156,7 +198,8 @@ export default function HomePage() {
       details: '250m² • Parking • 24/7 Security',
       specs: { beds: 0, baths: 2, parking: 4, area: 250, year: 2015 },
       category: 'Commercial',
-      broker: 'Brokered by UpperHill Commercial',
+      broker: 'Direct Owner',
+      source: 'owner',
       has3DTour: false,
       hasFloorPlan: true,
       coords: { lat: -1.300, lng: 36.817 }
@@ -171,6 +214,7 @@ export default function HomePage() {
       specs: { beds: 4, baths: 5, parking: 2, area: 320, year: 2012 },
       category: 'House',
       broker: 'Brokered by Runda Estates',
+      source: 'agent',
       has3DTour: true,
       hasFloorPlan: true,
       coords: { lat: -1.223, lng: 36.832 }
@@ -185,6 +229,7 @@ export default function HomePage() {
       specs: { beds: 2, baths: 2, parking: 1, area: 110, year: 2020 },
       category: 'Apartment',
       broker: 'Brokered by Kilimani Homes',
+      source: 'agent',
       has3DTour: false,
       hasFloorPlan: false,
       coords: { lat: -1.292, lng: 36.784 }
@@ -199,6 +244,7 @@ export default function HomePage() {
       specs: { beds: 0, baths: 1, parking: 6, area: 1200, year: 2010 },
       category: 'Industrial',
       broker: 'Brokered by Athi Logistics',
+      source: 'agent',
       has3DTour: false,
       hasFloorPlan: false,
       coords: { lat: -1.369, lng: 36.939 }
@@ -279,18 +325,68 @@ export default function HomePage() {
                 >
                   Rent
                 </button>
-                <button 
-                  className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                  onClick={() => setIsAgentOpen(true)}
-                >
-                  Sell
-                </button>
-                <button 
-                  className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                  onClick={() => setIsAgentOpen(true)}
-                >
-                  Agents
-                </button>
+                {/* Sell Dropdown */}
+                <div className="relative">
+                  <button 
+                    className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center"
+                    onMouseEnter={() => {
+                      if (sellDropdownTimeoutRef.current) {
+                        clearTimeout(sellDropdownTimeoutRef.current);
+                        sellDropdownTimeoutRef.current = null;
+                      }
+                      setIsSellDropdownOpen(true);
+                    }}
+                    onMouseLeave={() => {
+                      sellDropdownTimeoutRef.current = setTimeout(() => {
+                        setIsSellDropdownOpen(false);
+                      }, 200);
+                    }}
+                    onClick={() => {
+                      setIsSellDropdownOpen(!isSellDropdownOpen);
+                    }}
+                  >
+                    Sell
+                    <ChevronDown className="ml-1 w-4 h-4" />
+                  </button>
+                  {isSellDropdownOpen && (
+                    <div 
+                      className="absolute top-full left-0 mt-0 w-56 bg-white rounded-md shadow-xl border border-gray-200 py-1 z-50"
+                      onMouseEnter={() => {
+                        if (sellDropdownTimeoutRef.current) {
+                          clearTimeout(sellDropdownTimeoutRef.current);
+                          sellDropdownTimeoutRef.current = null;
+                        }
+                        setIsSellDropdownOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        sellDropdownTimeoutRef.current = setTimeout(() => {
+                          setIsSellDropdownOpen(false);
+                        }, 200);
+                      }}
+                    >
+                      <button 
+                        onClick={() => {
+                          setIsPropertyOwnerOpen(true);
+                          setIsSellDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <Home className="w-4 h-4 mr-2" />
+                        Property Owner
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setIsAgentOpen(true);
+                          setIsSellDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Agents
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -407,19 +503,70 @@ export default function HomePage() {
                     onClick={() => router.push('/community')}
                   >
                     <BarChart3 className="w-4 h-4 mr-1" />
-                    <span className="text-primary-600">AshGate Property Manager</span>
+                    <span className="text-primary-600">Ashgate Property Manager</span>
                   </button>
                 </div>
               </div>
-              <button 
-                className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
-                onClick={() => {
-                  console.log('Sign In clicked');
-                  setIsSignInOpen(true);
-                }}
-              >
-                Sign In
-              </button>
+              {/* Profile Icon / Sign In */}
+              <div className="relative">
+                {isUserLoggedIn ? (
+                  <button
+                    className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center gap-2"
+                    onClick={() => setIsProfileDropdownOpen(true)}
+                    aria-expanded={isProfileDropdownOpen}
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="hidden md:inline text-gray-700">{userName}</span>
+                  </button>
+                ) : (
+                  <button 
+                    className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center gap-2"
+                    onClick={() => {
+                      setIsSignInOpen(true);
+                    }}
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </button>
+                )}
+                {isUserLoggedIn && isProfileDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-xl border border-gray-200 py-1 z-50">
+                    {userType && (
+                      <button 
+                        onClick={() => {
+                          const dashboardPath = userType === 'homeowner' ? '/dashboard/homeowner' 
+                            : userType === 'agent' ? '/dashboard/agent'
+                            : userType === 'landlord' ? '/dashboard/landlord'
+                            : '/dashboard/tenant';
+                          router.push(dashboardPath);
+                          setIsProfileDropdownOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-primary-700 bg-primary-100 hover:bg-primary-200 transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Home className="w-4 h-4" />
+                          {userType === 'homeowner' ? 'Homeowner Dashboard' : userType === 'agent' ? 'Agent Dashboard' : 'Dashboard'}
+                        </span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-200">
+                      Logged in as: {userName}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setIsUserLoggedIn(false);
+                        setUserType(null);
+                        setUserName('');
+                        setIsProfileDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -473,15 +620,15 @@ export default function HomePage() {
           <div className="text-center">
 
             {/* Logo - Enhanced visibility with adaptive styling */}
-            <div className="mb-8 -mt-20 relative inline-block">
+            <div className="mb-8 -mt-20 relative inline-block pt-20">
               {/* Semi-transparent background circle for better contrast - Adapts to video */}
               <div 
-                className="absolute inset-0 rounded-full mx-auto"
+                className="absolute rounded-full mx-auto"
                 style={{
                   width: '140px',
                   height: '140px',
                   left: '50%',
-                  top: '50%',
+                  top: '70%',
                   transform: 'translate(-50%, -50%)',
                   background: logoStyle === 'bright' 
                     ? 'rgba(255, 255, 255, 0.2)' 
@@ -496,10 +643,12 @@ export default function HomePage() {
               ></div>
               
               {/* Logo with enhanced visibility filters */}
-              <img 
+              <Image 
                 src="/ashgate-logo.png" 
-                alt="AshGate Limited" 
-                className="h-24 w-auto max-w-full mx-auto relative z-10"
+                alt="Ashgate Limited" 
+                width={5120}
+                height={3840}
+                className="h-[3840px] w-auto max-w-full mx-auto relative z-10"
                 style={{
                   maxWidth: '100%', 
                   height: 'auto', 
@@ -543,7 +692,7 @@ export default function HomePage() {
             </h1>
             <p className="text-xl text-white mb-8 max-w-3xl mx-auto leading-relaxed drop-shadow-md" style={{textShadow: '1px 1px 3px rgba(0,0,0,0.5)'}}>
               Discover premium properties across East Africa. From luxury homes to prime land, 
-              AshGate connects you with the best real estate opportunities.
+              Ashgate connects you with the best real estate opportunities.
             </p>
             
             {/* Search Bar */}
@@ -557,7 +706,8 @@ export default function HomePage() {
                       placeholder="What are you looking for?"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 !text-gray-900 placeholder-gray-500"
+                      style={{ color: '#111827' }}
                     />
                   </div>
                 </div>
@@ -569,7 +719,8 @@ export default function HomePage() {
                       placeholder="Where?"
                       value={searchLocation}
                       onChange={(e) => setSearchLocation(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 !text-gray-900 placeholder-gray-500"
+                      style={{ color: '#111827' }}
                     />
                   </div>
                 </div>
@@ -607,7 +758,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-3">Featured <span className="text-primary-600">Listings</span></h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">A snapshot of premium homes, apartments, land and commercial spaces on AshGate.</p>
+            <p className="text-gray-600 max-w-3xl mx-auto">A snapshot of premium homes, apartments, land and commercial spaces on Ashgate.</p>
           </div>
           <div className="relative">
             <button aria-label="Prev" onClick={() => scrollListings('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow rounded-full w-10 h-10 flex items-center justify-center">
@@ -620,12 +771,14 @@ export default function HomePage() {
             </button>
 
             <div ref={listingsScrollRef} className="flex overflow-x-auto gap-6 snap-x snap-mandatory scrollbar-hide pb-2">
-              {featuredListings.map((item) => (
-                <div key={item.id} className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-xl overflow-hidden shadow cursor-pointer card-hover-raise" onClick={() => { setSelectedListing(item); setIsDetailsOpen(true); }}>
-                  {/* Broker */}
-                  <div className="px-5 pt-4 text-xs text-gray-500">{item.broker}</div>
-                  {/* Image area with tags */}
-                  <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300">
+              {featuredListings.map((item) => {
+                const isDirectOwner = item.source === 'owner' || item.broker === 'Direct Owner';
+                return (
+                <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => setSelectedListing(item)}>
+                  <div className={`px-5 pt-4 text-xs font-semibold ${isDirectOwner ? 'text-blue-600' : 'text-gray-500'}`}>
+                    {isDirectOwner ? 'Direct Owner' : item.broker}
+                  </div>
+                  <div className="relative h-44 bg-gradient-to-br from-gray-200 to-gray-300">
                     <div className="absolute top-2 left-2 flex gap-2">
                       {item.has3DTour && (
                         <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">3D Tour</span>
@@ -643,23 +796,15 @@ export default function HomePage() {
                     </div>
                     <p className="text-gray-600 mb-3">{item.location} • {item.details}</p>
                     <div className="flex items-center gap-3 text-gray-700 text-sm">
-                      {item.specs?.beds ? (
-                        <span className="inline-flex items-center gap-1"><Bed className="w-4 h-4" />{item.specs.beds}</span>
-                      ) : null}
-                      {item.specs?.baths ? (
-                        <span className="inline-flex items-center gap-1"><Bath className="w-4 h-4" />{item.specs.baths}</span>
-                      ) : null}
-                      {item.specs?.parking ? (
-                        <span className="inline-flex items-center gap-1"><CarFront className="w-4 h-4" />{item.specs.parking}</span>
-                      ) : null}
-                      {item.specs?.area ? (
-                        <span className="inline-flex items-center gap-1"><Ruler className="w-4 h-4" />{item.specs.area}m²</span>
-                      ) : null}
-                      {/* Year removed per design */}
+                      {item.specs?.beds ? (<span className="inline-flex items-center gap-1"><Bed className="w-4 h-4"/>{item.specs.beds}</span>) : null}
+                      {item.specs?.baths ? (<span className="inline-flex items-center gap-1"><Bath className="w-4 h-4"/>{item.specs.baths}</span>) : null}
+                      {item.specs?.parking ? (<span className="inline-flex items-center gap-1"><CarFront className="w-4 h-4"/>{item.specs.parking}</span>) : null}
+                      {item.specs?.area ? (<span className="inline-flex items-center gap-1"><Ruler className="w-4 h-4"/>{item.specs.area}m²</span>) : null}
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -673,7 +818,7 @@ export default function HomePage() {
       <section id="community" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-3 inline-flex items-center gap-3 justify-center"><UsersRound className="w-8 h-8 text-primary-600" /> AshGate <span className="text-primary-600">Community</span></h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-3 inline-flex items-center gap-3 justify-center"><UsersRound className="w-8 h-8 text-primary-600" /> Ashgate <span className="text-primary-600">Community</span></h2>
             <p className="text-gray-600 max-w-3xl mx-auto">A trusted network of verified professionals who make buying, building and moving effortless.</p>
           </div>
 
@@ -707,7 +852,7 @@ export default function HomePage() {
             </div>
             <div className="bg-white rounded-xl p-6 shadow">
               <h4 className="font-semibold text-gray-900 mb-2">Become a Partner</h4>
-              <p className="text-gray-700 mb-4">Are you an expert? Apply to join our network and grow with AshGate clients.</p>
+              <p className="text-gray-700 mb-4">Are you an expert? Apply to join our network and grow with Ashgate clients.</p>
               <button onClick={() => router.push('/community')} className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">Explore Community</button>
             </div>
           </div>
@@ -719,7 +864,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Choose <span className="text-primary-600">AshGate</span>?
+              Why Choose <span className="text-primary-600">Ashgate</span>?
             </h2>
             <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
               We&apos;re not just a property platform - we&apos;re East Africa&apos;s most comprehensive real estate ecosystem. From finding your dream home to managing your investment portfolio, we provide end-to-end solutions with verified experts and cutting-edge technology.
@@ -753,15 +898,72 @@ export default function HomePage() {
             Ready to Find Your Dream Property?
           </h2>
           <p className="text-xl text-primary-100 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Join thousands of satisfied customers who found their perfect home through AshGate.
+            Join thousands of satisfied customers who found their perfect home through Ashgate.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button onClick={() => router.push('/listings')} className="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
               Browse Properties
             </button>
-            <button onClick={() => setIsAgentOpen(true)} className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-              List Your Property
-            </button>
+            {/* List Your Property Dropdown */}
+            <div className="relative inline-block">
+              <button 
+                onMouseEnter={() => {
+                  if (listPropertyDropdownTimeoutRef.current) {
+                    clearTimeout(listPropertyDropdownTimeoutRef.current);
+                    listPropertyDropdownTimeoutRef.current = null;
+                  }
+                  setIsListPropertyDropdownOpen(true);
+                }}
+                onMouseLeave={() => {
+                  listPropertyDropdownTimeoutRef.current = setTimeout(() => {
+                    setIsListPropertyDropdownOpen(false);
+                  }, 200);
+                }}
+                onClick={() => setIsListPropertyDropdownOpen(!isListPropertyDropdownOpen)}
+                className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
+              >
+                List Your Property
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              {isListPropertyDropdownOpen && (
+                <div 
+                  className="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl border border-gray-200 py-1 z-50"
+                  onMouseEnter={() => {
+                    if (listPropertyDropdownTimeoutRef.current) {
+                      clearTimeout(listPropertyDropdownTimeoutRef.current);
+                      listPropertyDropdownTimeoutRef.current = null;
+                    }
+                    setIsListPropertyDropdownOpen(true);
+                  }}
+                  onMouseLeave={() => {
+                    listPropertyDropdownTimeoutRef.current = setTimeout(() => {
+                      setIsListPropertyDropdownOpen(false);
+                    }, 200);
+                  }}
+                >
+                  <button 
+                    onClick={() => {
+                      setIsPropertyOwnerOpen(true);
+                      setIsListPropertyDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <Home className="w-4 h-4 mr-2" />
+                    Property Owner
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsAgentOpen(true);
+                      setIsListPropertyDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Agents
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -775,7 +977,7 @@ export default function HomePage() {
               <span className="text-white">What Our </span><span className="text-primary-200">Clients</span><span className="text-white"> Say</span>
             </h2>
             <p className="text-lg text-gray-100 max-w-3xl mx-auto leading-relaxed">
-              Don&apos;t just take our word for it — hear from satisfied customers who found their perfect property through AshGate.
+              Don&apos;t just take our word for it — hear from satisfied customers who found their perfect property through Ashgate.
             </p>
           </div>
           <div className="relative">
@@ -792,7 +994,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-gray-700 leading-relaxed">
-                &quot;AshGate helped me find the perfect apartment in Westlands within my budget. Their property management service is exceptional - rent collection is automated and maintenance requests are handled promptly.&quot;
+                &quot;Ashgate helped me find the perfect apartment in Westlands within my budget. Their property management service is exceptional - rent collection is automated and maintenance requests are handled promptly.&quot;
               </p>
               <div className="flex text-yellow-400 mt-4">
                 {[...Array(5)].map((_, i) => (
@@ -813,7 +1015,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-gray-700 leading-relaxed">
-                &quot;The land development advisory service was a game-changer. AshGate connected me with the right quantity surveyor and helped me navigate all the regulatory requirements. My project is now profitable!&quot;
+                &quot;The land development advisory service was a game-changer. Ashgate connected me with the right quantity surveyor and helped me navigate all the regulatory requirements. My project is now profitable!&quot;
               </p>
               <div className="flex text-yellow-400 mt-4">
                 {[...Array(5)].map((_, i) => (
@@ -834,7 +1036,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-gray-700 leading-relaxed">
-                &quot;As an expatriate relocating to Uganda, AshGate&apos;s specialized service was invaluable. They found me a fully furnished home and connected me with interior designers. The transition was seamless!&quot;
+                &quot;As an expatriate relocating to Uganda, Ashgate&apos;s specialized service was invaluable. They found me a fully furnished home and connected me with interior designers. The transition was seamless!&quot;
               </p>
               <div className="flex text-yellow-400 mt-4">
                 {[...Array(5)].map((_, i) => (
@@ -876,7 +1078,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-gray-700 leading-relaxed">
-                &quot;Managing multiple properties was a nightmare until I found AshGate. Their integrated payment system with M-Pesa makes rent collection effortless, and the maintenance tracking is top-notch.&quot;
+                &quot;Managing multiple properties was a nightmare until I found Ashgate. Their integrated payment system with M-Pesa makes rent collection effortless, and the maintenance tracking is top-notch.&quot;
               </p>
               <div className="flex text-yellow-400 mt-4">
                 {[...Array(5)].map((_, i) => (
@@ -897,7 +1099,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-gray-700 leading-relaxed">
-                &quot;The expert network is incredible! When I needed a solar installer, AshGate connected me with a verified professional who completed the job perfectly. The platform truly delivers on its promises.&quot;
+                &quot;The expert network is incredible! When I needed a solar installer, Ashgate connected me with a verified professional who completed the job perfectly. The platform truly delivers on its promises.&quot;
               </p>
               <div className="flex text-yellow-400 mt-4">
                 {[...Array(5)].map((_, i) => (
@@ -951,7 +1153,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">AshGate</h3>
+              <h3 className="text-2xl font-bold mb-4">Ashgate Limited</h3>
               <p className="text-gray-300 leading-relaxed">
                 Your trusted partner in real estate across East Africa. Connecting dreams with reality.
               </p>
@@ -970,7 +1172,7 @@ export default function HomePage() {
               <ul className="space-y-2 text-gray-300">
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Property Management</a></li>
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Land Development</a></li>
-                <li><a href="#" className="hover:text-white transition-colors duration-200">Expert Network</a></li>
+                <li><a href="/community" className="hover:text-white transition-colors duration-200">Expert Network</a></li>
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Carbon Credits</a></li>
               </ul>
             </div>
@@ -981,13 +1183,38 @@ export default function HomePage() {
                 <li>Phone: +254 700 000 000</li>
                 <li>Nairobi, Kenya</li>
               </ul>
+              {/* Social Media Icons */}
+              <div className="mt-4 flex items-center gap-4">
+                <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200" aria-label="Facebook">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200" aria-label="X">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M3 3h4l5 7 5-7h4l-7.5 10L21 21h-4l-5-7-5 7H3l7.5-10L3 3z" />
+                  </svg>
+                </a>
+                <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200" aria-label="Instagram">
+                  <Instagram className="w-5 h-5" />
+                </a>
+              </div>
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-            <p>&copy; 2024 AshGate Limited. All rights reserved. | Building dreams, one property at a time.</p>
+            <p>&copy; 2024 Ashgate Limited. All rights reserved. | Building dreams, one property at a time.</p>
           </div>
         </div>
       </footer>
+
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed right-6 bottom-6 z-50 bg-primary-600 text-white p-3 rounded-full shadow-lg hover:bg-primary-700 transition-all duration-300 hover:scale-110"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Listing Details Modal */}
       {isDetailsOpen && selectedListing && (
@@ -1000,7 +1227,9 @@ export default function HomePage() {
               </div>
               <div className="text-right">
                 <div className="text-primary-600 font-bold text-xl">{selectedListing.price}</div>
-                <div className="text-xs text-gray-500">{selectedListing.broker}</div>
+                <div className={`text-xs font-semibold ${selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-500'}`}>
+                  {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Direct Owner' : selectedListing.broker}
+                </div>
               </div>
             </div>
 
@@ -1031,11 +1260,15 @@ export default function HomePage() {
               </div>
               <aside className="border-l border-gray-200 p-6">
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <div className="font-semibold text-gray-900 mb-1">Contact Agent</div>
+                  <div className="font-semibold text-gray-900 mb-1">{selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Contact Owner' : 'Contact Agent'}</div>
                   <p className="text-sm text-gray-600 mb-3">Have questions or want to schedule a tour?</p>
-                  <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">Email Agent</button>
+                  <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">
+                    {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Email Owner' : 'Email Agent'}
+                  </button>
                 </div>
-                <div className="text-sm text-gray-600">Listed by: <span className="font-medium text-gray-900">{selectedListing.broker}</span></div>
+                <div className="text-sm text-gray-600">Listed by: <span className={`font-semibold ${selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-900'}`}>
+                  {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Direct Owner' : selectedListing.broker}
+                </span></div>
               </aside>
             </div>
 
@@ -1054,7 +1287,7 @@ export default function HomePage() {
       {/* Agent Registration Modal */}
       {isAgentOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsAgentOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Agent Registration</h2>
               <button className="text-gray-500 hover:text-gray-700" onClick={() => setIsAgentOpen(false)}>✕</button>
@@ -1062,31 +1295,125 @@ export default function HomePage() {
             <form className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">First Name</label>
-                <input className="w-full border rounded-lg px-3 py-2" placeholder="Jane" />
+                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="Jane" />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Last Name</label>
-                <input className="w-full border rounded-lg px-3 py-2" placeholder="Doe" />
+                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="Doe" />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Email</label>
-                <input type="email" className="w-full border rounded-lg px-3 py-2" placeholder="agent@example.com" />
+                <input type="email" className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="agent@example.com" />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Phone</label>
-                <input className="w-full border rounded-lg px-3 py-2" placeholder="+254 7xx xxx xxx" />
+                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="+254 7xx xxx xxx" />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-700 mb-1">Agency / Brokerage</label>
-                <input className="w-full border rounded-lg px-3 py-2" placeholder="Company name" />
+                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="Company name" />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-700 mb-1">About</label>
-                <textarea className="w-full border rounded-lg px-3 py-2" rows={3} placeholder="Short bio and service areas"></textarea>
+                <textarea className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} rows={3} placeholder="Short bio and service areas"></textarea>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm text-gray-700 mb-1">Supporting Documents</label>
+                <p className="text-xs text-gray-500 mb-2">Upload relevant documents for verification (e.g., business license, registration certificate, etc.)</p>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  className="w-full border rounded-lg px-3 py-2 text-sm !text-gray-900"
+                  style={{ color: '#111827' }}
+                />
+                <p className="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max 5MB per file)</p>
               </div>
               <div className="md:col-span-2 flex items-center justify-between">
-                <div className="text-sm text-gray-700">Paying homage to <a href="/terms-and-conditions.html" className="underline text-primary-600">AshGate Limited&apos;s Terms & Conditions</a>, we thoroughly screen every Agent Application to keep AshGate a secure, fraud‑free environment for our users.</div>
+                <div className="text-sm text-gray-700">Paying homage to <a href="/terms-and-conditions.html" className="underline text-primary-600">Ashgate Limited&apos;s Terms & Conditions</a>, we thoroughly screen every Agent Application to keep Ashgate a secure, fraud‑free environment for our users.</div>
                 <button type="button" className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700">Submit Application</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Property Owner Registration Modal */}
+      {isPropertyOwnerOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsPropertyOwnerOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Property Owner Registration</h2>
+              <button className="text-gray-500 hover:text-gray-700" onClick={() => setIsPropertyOwnerOpen(false)}>✕</button>
+            </div>
+            <form className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="John" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="Doe" required />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="owner@example.com" required />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="+254 7xx xxx xxx" required />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Property Address</label>
+                <input className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="Enter property address" required />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Selling</label>
+                <textarea 
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900"
+                  style={{ color: '#111827' }} 
+                  rows={4} 
+                  placeholder="Please tell us why you want to sell your property (e.g., mortgage repayment issues, relocation, etc.)"
+                  required
+                />
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="agreeViewing"
+                    className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    required
+                  />
+                  <label htmlFor="agreeViewing" className="ml-2 text-sm text-gray-700">
+                    I agree to allow Ashgate Limited to visit my property for viewing and to take professional photos and videos if needed. I understand that this is necessary for listing my property on the platform.
+                  </label>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-gray-700">
+                  <strong>Note:</strong> If you have poor quality photos or videos of your property, we will schedule a professional photography session. Our team will contact you to arrange a convenient time for the property visit. <strong>The professional photography session will be at the owner&apos;s cost.</strong>
+                </p>
+              </div>
+              
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  By submitting, you agree to{' '}
+                  <a href="/terms-and-conditions.html" target="_blank" className="text-primary-600 hover:text-primary-500 underline">
+                    Ashgate Limited&apos;s Terms & Conditions
+                  </a>
+                </div>
+                <button type="button" className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                  Submit Application
+                </button>
               </div>
             </form>
           </div>
@@ -1109,7 +1436,39 @@ export default function HomePage() {
               </button>
             </div>
             
-            <form className="p-6 space-y-4">
+            {/* Test Credentials Info */}
+            <div className="px-6 pt-4 pb-2">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-900 mb-1">Test Credentials (Demo Only):</p>
+                <div className="text-xs text-blue-800 space-y-1">
+                  <p><strong>Property Owner:</strong> owner@test.com / test123</p>
+                  <p><strong>Agent:</strong> agent@test.com / test123</p>
+                </div>
+              </div>
+            </div>
+            
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                // Mock authentication - test credentials
+                const mockUsers = {
+                  'owner@test.com': { password: 'test123', type: 'homeowner' as const, name: 'John Doe' },
+                  'agent@test.com': { password: 'test123', type: 'agent' as const, name: 'Jane Smith' },
+                };
+                
+                const user = mockUsers[signInData.email as keyof typeof mockUsers];
+                if (user && signInData.password === user.password) {
+                  setIsUserLoggedIn(true);
+                  setUserType(user.type);
+                  setUserName(user.name);
+                  setIsSignInOpen(false);
+                  setSignInData({ email: '', password: '' });
+                } else {
+                  alert('Invalid credentials. Use test credentials shown above.');
+                }
+              }}
+              className="p-6 space-y-4"
+            >
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address
@@ -1119,7 +1478,8 @@ export default function HomePage() {
                   id="email"
                   value={signInData.email}
                   onChange={(e) => setSignInData({...signInData, email: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent !text-gray-900"
+                  style={{ color: '#111827' }}
                   placeholder="Enter your email"
                   required
                 />
@@ -1134,7 +1494,8 @@ export default function HomePage() {
                   id="password"
                   value={signInData.password}
                   onChange={(e) => setSignInData({...signInData, password: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent !text-gray-900"
+                  style={{ color: '#111827' }}
                   placeholder="Enter your password"
                   required
                 />
@@ -1157,19 +1518,6 @@ export default function HomePage() {
                 Sign In
               </button>
               
-              <div className="text-center">
-                <span className="text-sm text-gray-600">Don&apos;t have an account? </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSignInOpen(false);
-                    setIsSignUpOpen(true);
-                  }}
-                  className="text-sm text-primary-600 hover:text-primary-500 font-medium"
-                >
-                  Sign up here
-                </button>
-              </div>
             </form>
           </div>
         </div>
@@ -1295,7 +1643,7 @@ export default function HomePage() {
                 <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-600">
                   By checking this box you accept{' '}
                   <a href="/terms-and-conditions.html" target="_blank" className="text-primary-600 hover:text-primary-500 underline">
-                    AshGate Limited&apos;s Terms & Conditions
+                    Ashgate Limited&apos;s Terms & Conditions
                   </a>{' '}
                   and{' '}
                   <a href="#" className="text-primary-600 hover:text-primary-500 underline">

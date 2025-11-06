@@ -6,7 +6,7 @@ const content: Record<string, { title: string; body: string; date: string; autho
   'plant-trees-on-idle-land': {
     title: 'Plant trees on idle land: species by Kenyan region',
     date: '2025-10-30',
-    author: 'AshGate Editorial',
+    author: 'Ashgate Editorial',
     body: 'Idle land can generate long-term value through timber, fruit or carbon credits. In high rainfall zones, consider grevillea and macadamia; in drier areas, drought-tolerant species like melia volkensii perform better...'
   },
   'buying-process-checklist': {

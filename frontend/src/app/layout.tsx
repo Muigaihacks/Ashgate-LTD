@@ -2,21 +2,21 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AshGate - Premium Real Estate Platform | East Africa",
-  description: "Discover premium properties across East Africa. From luxury homes to prime land, AshGate connects you with the best real estate opportunities.",
+  title: "Ashgate - Premium Real Estate Platform | East Africa",
+  description: "Discover premium properties across East Africa. From luxury homes to prime land, Ashgate connects you with the best real estate opportunities.",
   keywords: "real estate, properties, Kenya, East Africa, luxury homes, land, apartments, commercial",
-  authors: [{ name: "AshGate Ltd" }],
+  authors: [{ name: "Ashgate Ltd" }],
   openGraph: {
-    title: "AshGate - Premium Real Estate Platform",
+    title: "Ashgate - Premium Real Estate Platform",
     description: "Discover premium properties across East Africa",
     url: "https://ashgate.co.ke",
-    siteName: "AshGate",
+    siteName: "Ashgate",
     locale: "en_KE",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AshGate - Premium Real Estate Platform",
+    title: "Ashgate - Premium Real Estate Platform",
     description: "Discover premium properties across East Africa",
   },
   robots: {

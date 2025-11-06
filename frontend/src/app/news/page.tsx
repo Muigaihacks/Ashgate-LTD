@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 const articles = [
-  { slug: 'plant-trees-on-idle-land', title: 'Plant trees on idle land: species by Kenyan region', excerpt: 'A practical guide on what to plant and where for long-term value.', date: '2025-10-30', author: 'AshGate Editorial' },
+  { slug: 'plant-trees-on-idle-land', title: 'Plant trees on idle land: species by Kenyan region', excerpt: 'A practical guide on what to plant and where for long-term value.', date: '2025-10-30', author: 'Ashgate Editorial' },
   { slug: 'buying-process-checklist', title: 'Buying land or a home: step-by-step checklist', excerpt: 'From due diligence to transfer—what to expect and how to prepare.', date: '2025-10-29', author: 'Legal Desk' },
   { slug: 'solar-payback', title: 'Solar for homes: costs, payback and incentives', excerpt: 'When solar makes sense and how to choose the right system size.', date: '2025-10-28', author: 'Energy Desk' },
 ];

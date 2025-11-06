@@ -11,6 +11,8 @@ const categories = [
   { key: 'movers', name: 'Professional Movers', icon: Truck },
   { key: 'photography', name: 'Real Estate Photography', icon: Camera },
   { key: 'interior', name: 'Interior Design & Staging', icon: Paintbrush },
+  { key: 'real-estate-agent', name: 'Real Estate Agents', icon: Users },
+  { key: 'property-manager', name: 'Property Managers', icon: Users },
 ];
 
 const experts = [
@@ -40,13 +42,24 @@ export default function CommunityPage() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 inline-flex items-center gap-3 justify-center"><Users className="text-primary-600"/> Community Experts</h1>
           <p className="text-gray-700 mt-2">Vetted professionals you can trust at every step of your property journey.</p>
+          <div className="mt-6">
+            <button 
+              onClick={() => {
+                window.location.href = '/experts/register';
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+            >
+              <Users className="w-5 h-5" />
+              Become an Expert
+            </button>
+          </div>
         </div>
 
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex-1 min-w-[280px] flex items-center bg-white border rounded-lg px-3">
               <Search className="w-4 h-4 text-gray-500"/>
-              <input value={query} onChange={(e)=>setQuery(e.target.value)} className="flex-1 px-2 py-2 outline-none" placeholder="Search by name or location"/>
+              <input value={query} onChange={(e)=>setQuery(e.target.value)} className="flex-1 px-2 py-2 outline-none !text-gray-900" style={{ color: '#111827' }} placeholder="Search by name or location"/>
             </div>
             <div className="flex gap-2 overflow-x-auto">
               <button onClick={()=>setFilter('')} className={`px-3 py-2 rounded-lg border ${filter===''?'bg-primary-600 text-white border-primary-600':'bg-white text-black'}`}>All</button>

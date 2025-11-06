@@ -64,7 +64,7 @@ export default function ListingsPage() {
           <div className="flex items-center gap-3">
             <div className="flex-1 flex items-center bg-white border rounded-lg px-3">
               <Search className="w-4 h-4 text-gray-500" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 px-2 py-2 outline-none" placeholder="Search by title or location" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 px-2 py-2 outline-none !text-gray-900" style={{ color: '#111827' }} placeholder="Search by title or location" />
               <button onClick={() => setQuery(query)} className="px-3 py-1 text-sm rounded bg-primary-600 text-white">Enter</button>
             </div>
             <button onClick={() => setIsFilterOpen(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-black">
@@ -75,9 +75,13 @@ export default function ListingsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginated.map((item: any, idx: number) => (
+          {paginated.map((item: any, idx: number) => {
+            const isDirectOwner = item.source === 'owner' || item.broker === 'Direct Owner';
+            return (
             <div key={idx} className="bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => setSelected(item)}>
-              <div className="px-5 pt-4 text-xs text-gray-500">{item.broker}</div>
+              <div className={`px-5 pt-4 text-xs font-semibold ${isDirectOwner ? 'text-blue-600' : 'text-gray-500'}`}>
+                {isDirectOwner ? 'Direct Owner' : item.broker}
+              </div>
               <div className="relative h-44 bg-gradient-to-br from-gray-200 to-gray-300">
                 <div className="absolute top-2 left-2 flex gap-2">
                   {item.has3DTour && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">3D Tour</span>)}
@@ -99,7 +103,8 @@ export default function ListingsPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
         {/* Pagination */}
         <div className="flex justify-center items-center gap-3 mt-8">
@@ -116,7 +121,7 @@ export default function ListingsPage() {
               <div className="p-5 grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm text-gray-900 mb-1">Category</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-black">
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }}>
                     <option value="">Any</option>
                     <option>Apartment</option>
                     <option>House</option>
@@ -128,11 +133,11 @@ export default function ListingsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm text-gray-900 mb-1">Min price (KSh)</label>
-                    <input value={minPrice} onChange={(e)=>setMinPrice(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-black placeholder-gray-400" placeholder="e.g. 5000000" />
+                    <input value={minPrice} onChange={(e)=>setMinPrice(e.target.value)} className="w-full border rounded-lg px-3 py-2 !text-gray-900 placeholder-gray-400" style={{ color: '#111827' }} placeholder="e.g. 5000000" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-900 mb-1">Max price (KSh)</label>
-                    <input value={maxPrice} onChange={(e)=>setMaxPrice(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-black placeholder-gray-400" placeholder="e.g. 20000000" />
+                    <input value={maxPrice} onChange={(e)=>setMaxPrice(e.target.value)} className="w-full border rounded-lg px-3 py-2 !text-gray-900 placeholder-gray-400" style={{ color: '#111827' }} placeholder="e.g. 20000000" />
                   </div>
                 </div>
               </div>
@@ -165,7 +170,9 @@ function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void })
           </div>
           <div className="text-right">
             <div className="text-primary-600 font-bold text-xl">{listing.price}</div>
-            <div className="text-xs text-gray-500">{listing.broker}</div>
+            <div className={`text-xs font-semibold ${listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-500'}`}>
+              {listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Direct Owner' : listing.broker}
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
@@ -189,11 +196,15 @@ function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void })
           </div>
           <aside className="border-l border-gray-200 p-6">
             <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="font-semibold text-gray-900 mb-1">Contact Agent</div>
+              <div className="font-semibold text-gray-900 mb-1">{listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Contact Owner' : 'Contact Agent'}</div>
               <p className="text-sm text-gray-600 mb-3">Have questions or want to schedule a tour?</p>
-              <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">Email Agent</button>
+              <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">
+                {listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Email Owner' : 'Email Agent'}
+              </button>
             </div>
-            <div className="text-sm text-gray-600">Listed by: <span className="font-medium text-gray-900">{listing.broker}</span></div>
+            <div className="text-sm text-gray-600">Listed by: <span className={`font-semibold ${listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-900'}`}>
+              {listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Direct Owner' : listing.broker}
+            </span></div>
           </aside>
         </div>
         <div className="px-6 py-4 border-t border-gray-200">
