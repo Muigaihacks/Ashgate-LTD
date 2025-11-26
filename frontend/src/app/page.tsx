@@ -29,7 +29,9 @@ import {
   Home,
   ArrowUp,
   Facebook,
-  Instagram
+  Instagram,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -160,6 +162,30 @@ export default function HomePage() {
   // Featured listings data (stubbed for now). Wire to backend later.
   const featuredListings = [
     {
+      id: 7,
+      title: 'Lovely 2BR Serviced Apartment near UN/Runda',
+      price: 'KSh 170,000/mo',
+      listingType: 'rent',
+      location: 'Lymak Suites, Fourways Junction, Nairobi',
+      details: '2 bed • 2 bath • Fully Furnished • Serviced',
+      fullDescription: 'A lovely, fully furnished and spacious, serviced 2 bedroom 2 bath apartment just became available near the UN/Runda area — perfect for families or professionals.\n\n🏡 Highlights:\n• Secure compound with gym, pool, rooftop & restaurant all onsite.\n• Daily housekeeping\n• Beautiful garden\n• Close to UN, Gigiri & Village Market\n\nRent payment includes:\n• Furniture + linen\n• Electricity (plus back-up generator)\n• Water\n• Daily Housekeeping\n• Laundry Facilities\n• Pool\n• Gym\n\nOwner prefers long-term tenant (2+ years). Rent is KSh 170,000 per month but negotiable for long term leases.',
+      specs: { beds: 2, baths: 2, parking: 1, area: 120, year: 0 },
+      category: 'Apartment',
+      broker: 'Direct Owner',
+      source: 'owner',
+      has3DTour: false,
+      hasFloorPlan: false,
+      images: [
+        '/images/listings/lymak1.jpeg',
+        '/images/listings/lymak2.jpeg',
+        '/images/listings/lymak3.jpeg',
+        '/images/listings/lymak4.jpeg',
+        '/images/listings/lymak5.jpeg',
+        '/images/listings/lymak6.jpeg'
+      ],
+      coords: { lat: -1.205, lng: 36.840 }
+    },
+    {
       id: 1,
       title: 'Modern 3BR Apartment',
       price: 'KSh 18.5M',
@@ -262,6 +288,7 @@ export default function HomePage() {
   // Listing details modal state
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<typeof featuredListings[0] | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Expose listings for listings page (temporary until API)
   useEffect(() => {
@@ -774,11 +801,18 @@ export default function HomePage() {
               {featuredListings.map((item) => {
                 const isDirectOwner = item.source === 'owner' || item.broker === 'Direct Owner';
                 return (
-                <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => setSelectedListing(item)}>
+                <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => { setSelectedListing(item); setIsDetailsOpen(true); setSelectedImageIndex(0); }}>
                   <div className={`px-5 pt-4 text-xs font-semibold ${isDirectOwner ? 'text-blue-600' : 'text-gray-500'}`}>
                     {isDirectOwner ? 'Direct Owner' : item.broker}
                   </div>
-                  <div className="relative h-44 bg-gradient-to-br from-gray-200 to-gray-300">
+                  <div className="relative h-44 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                    {item.images && item.images.length > 0 ? (
+                      <img 
+                        src={item.images[0]} 
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : null}
                     <div className="absolute top-2 left-2 flex gap-2">
                       {item.has3DTour && (
                         <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">3D Tour</span>
@@ -1218,7 +1252,7 @@ export default function HomePage() {
 
       {/* Listing Details Modal */}
       {isDetailsOpen && selectedListing && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center overflow-y-auto p-4" onClick={() => setIsDetailsOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center overflow-y-auto p-4" onClick={() => { setIsDetailsOpen(false); setSelectedListing(null); }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl mt-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
               <div>
@@ -1236,7 +1270,61 @@ export default function HomePage() {
             {/* Top area: gallery + sidebar CTA (Zillow-inspired) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
               <div className="lg:col-span-2">
-                <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
+                {selectedListing.images && selectedListing.images.length > 0 ? (
+                  <div className="relative h-72 bg-gray-900 overflow-hidden group">
+                    <img 
+                      src={selectedListing.images[selectedImageIndex]} 
+                      alt={`${selectedListing.title} - Image ${selectedImageIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {selectedListing.images.length > 1 && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedImageIndex((prev) => (prev === 0 ? selectedListing.images.length - 1 : prev - 1));
+                          }}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedImageIndex((prev) => (prev === selectedListing.images.length - 1 ? 0 : prev + 1));
+                          }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                          aria-label="Next image"
+                        >
+                          <ChevronRight className="w-6 h-6" />
+                        </button>
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                          {selectedImageIndex + 1} / {selectedListing.images.length}
+                        </div>
+                        {/* Thumbnail strip */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex gap-2 overflow-x-auto">
+                          {selectedListing.images.map((img, idx) => (
+                            <button
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImageIndex(idx);
+                              }}
+                              className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all ${
+                                idx === selectedImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                              }`}
+                            >
+                              <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
+                )}
                 {/* Spec bar under gallery */}
                 <div className="px-6 py-3 border-t border-gray-200">
                   <div className="flex flex-wrap gap-4 text-sm text-gray-800">
@@ -1246,7 +1334,9 @@ export default function HomePage() {
                     {selectedListing?.specs?.area ? (<span className="inline-flex items-center gap-1"><Ruler className="w-4 h-4"/> {selectedListing.specs.area} m²</span>) : null}
                   </div>
                 </div>
-                <div className="px-6 py-2 text-gray-700">{selectedListing.details}</div>
+                <div className="px-6 py-2 text-gray-700 whitespace-pre-line">
+                  {selectedListing.fullDescription || selectedListing.details}
+                </div>
                 <div className="px-6">
                   <div className="flex flex-wrap gap-2 mb-4">
                     {selectedListing.has3DTour && (
@@ -1278,7 +1368,7 @@ export default function HomePage() {
             </div>
 
             <div className="p-5 border-t border-gray-200 flex justify-end">
-              <button className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => setIsDetailsOpen(false)}>Close</button>
+              <button className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => { setIsDetailsOpen(false); setSelectedListing(null); setSelectedImageIndex(0); }}>Close</button>
             </div>
           </div>
         </div>
@@ -1724,30 +1814,14 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
       });
       new maplibregl.Marker().setLngLat(center).addTo(map);
       mapInstanceRef.current = map;
-      map.on('error', () => setMapToast('Map failed to load. Check your internet or API key.'));
-      map.on('load', () => {
-        // Add simple amenity circle layers from the built-in POI source
-        const addAmenityLayer = (id: string, classes: string[], color: string) => {
-          if (map.getLayer(id)) return;
-          map.addLayer({
-            id,
-            type: 'circle',
-            source: 'openmaptiles',
-            'source-layer': 'poi',
-            filter: ['in', ['get', 'class'], ['literal', ...classes]],
-            paint: {
-              'circle-radius': 5,
-              'circle-color': color,
-              'circle-opacity': 0.9
-            }
-          });
-          map.setLayoutProperty(id, 'visibility', 'none');
-        };
-        addAmenityLayer('amenity-schools', ['school', 'college', 'university'], '#2563eb');
-        addAmenityLayer('amenity-hospitals', ['hospital', 'clinic'], '#dc2626');
-        addAmenityLayer('amenity-supermarkets', ['supermarket', 'grocery'], '#16a34a');
-        addAmenityLayer('amenity-transit', ['bus', 'bus_stop', 'tram_stop', 'station'], '#7c3aed');
+      map.on('error', (e) => {
+        // Only show error if it's a critical map loading error, not layer-related
+        if (e.error && e.error.message && !e.error.message.includes('source')) {
+          setMapToast('Map failed to load. Check your internet or API key.');
+        }
       });
+      // Note: Amenity layers removed as MapTiler style doesn't include POI source
+      // This feature will be reimplemented with proper data source in future update
     });
     return () => {
       // No teardown to keep simple; modal close unmounts container
@@ -1763,18 +1837,7 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
   };
 
   // Toggle amenity layer visibility when chips change
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    const setVisible = (id: string, on: boolean) => {
-      if (!map.getLayer(id)) return;
-      map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    };
-    setVisible('amenity-schools', selectedAmenities.includes('Schools'));
-    setVisible('amenity-hospitals', selectedAmenities.includes('Hospitals'));
-    setVisible('amenity-supermarkets', selectedAmenities.includes('Supermarkets'));
-    setVisible('amenity-transit', selectedAmenities.includes('Transit'));
-  }, [selectedAmenities]);
+  // Note: Amenity layer visibility toggle removed - will be reimplemented with proper data source
 
   return (
     <div>

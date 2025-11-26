@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Bed, Bath, CarFront, Ruler, Search, Filter, ArrowLeft } from 'lucide-react';
+import { Bed, Bath, CarFront, Ruler, Search, Filter, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ListingsPage() {
   const params = useSearchParams();
@@ -82,7 +82,14 @@ export default function ListingsPage() {
               <div className={`px-5 pt-4 text-xs font-semibold ${isDirectOwner ? 'text-blue-600' : 'text-gray-500'}`}>
                 {isDirectOwner ? 'Direct Owner' : item.broker}
               </div>
-              <div className="relative h-44 bg-gradient-to-br from-gray-200 to-gray-300">
+              <div className="relative h-44 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                {item.images && item.images.length > 0 ? (
+                  <img 
+                    src={item.images[0]} 
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : null}
                 <div className="absolute top-2 left-2 flex gap-2">
                   {item.has3DTour && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">3D Tour</span>)}
                   {item.hasFloorPlan && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/90 text-gray-800 shadow">Floor Plan</span>)}
@@ -160,6 +167,12 @@ export default function ListingsPage() {
 
 
 function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void }) {
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [listing]);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center overflow-y-auto p-4" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl mt-8" onClick={(e)=>e.stopPropagation()}>
@@ -177,7 +190,61 @@ function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void })
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
           <div className="lg:col-span-2">
-            <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
+            {listing.images && listing.images.length > 0 ? (
+              <div className="relative h-72 bg-gray-900 overflow-hidden group">
+                <img 
+                  src={listing.images[selectedImageIndex]} 
+                  alt={`${listing.title} - Image ${selectedImageIndex + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                {listing.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIndex((prev) => (prev === 0 ? listing.images.length - 1 : prev - 1));
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIndex((prev) => (prev === listing.images.length - 1 ? 0 : prev + 1));
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                      {selectedImageIndex + 1} / {listing.images.length}
+                    </div>
+                    {/* Thumbnail strip */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex gap-2 overflow-x-auto">
+                      {listing.images.map((img: string, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedImageIndex(idx);
+                          }}
+                          className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all ${
+                            idx === selectedImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
+            )}
             <div className="px-6 py-3 border-t border-gray-200">
               <div className="flex flex-wrap gap-4 text-sm text-gray-800">
                 {listing?.specs?.beds ? (<span className="inline-flex items-center gap-1"><Bed className="w-4 h-4"/> {listing.specs.beds} Beds</span>) : null}
@@ -186,7 +253,9 @@ function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void })
                 {listing?.specs?.area ? (<span className="inline-flex items-center gap-1"><Ruler className="w-4 h-4"/> {listing.specs.area} m²</span>) : null}
               </div>
             </div>
-            <div className="px-6 py-2 text-gray-700">{listing.details}</div>
+            <div className="px-6 py-2 text-gray-700 whitespace-pre-line">
+              {listing.fullDescription || listing.details}
+            </div>
             <div className="px-6">
               <div className="flex flex-wrap gap-2 mb-4">
                 {listing.has3DTour && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-800 border">3D Tour</span>)}
@@ -256,42 +325,19 @@ function TabsLite({ listing }: { listing: any }) {
       });
       new maplibregl.Marker().setLngLat(center).addTo(map);
       mapInstanceRef.current = map;
-      map.on('error', () => setMapToast('Map failed to load. Check your internet or API key.'));
-      map.on('load', () => {
-        const addAmenityLayer = (id: string, classes: string[], color: string) => {
-          if (map.getLayer(id)) return;
-          map.addLayer({
-            id,
-            type: 'circle',
-            source: 'openmaptiles',
-            'source-layer': 'poi',
-            filter: ['in', ['get', 'class'], ['literal', ...classes]],
-            paint: { 'circle-radius': 5, 'circle-color': color, 'circle-opacity': 0.9 }
-          });
-          map.setLayoutProperty(id, 'visibility', 'none');
-        };
-        addAmenityLayer('l-amenity-schools', ['school','college','university'], '#2563eb');
-        addAmenityLayer('l-amenity-hospitals', ['hospital','clinic'], '#dc2626');
-        addAmenityLayer('l-amenity-supermarkets', ['supermarket','grocery'], '#16a34a');
-        addAmenityLayer('l-amenity-transit', ['bus','bus_stop','tram_stop','station'], '#7c3aed');
+      map.on('error', (e) => {
+        // Only show error if it's a critical map loading error, not layer-related
+        if (e.error && e.error.message && !e.error.message.includes('source')) {
+          setMapToast('Map failed to load. Check your internet or API key.');
+        }
       });
+      // Note: Amenity layers removed as MapTiler style doesn't include POI source
+      // This feature will be reimplemented with proper data source in future update
     };
     ensure();
   }, [active, MAPTILER_KEY, listing]);
 
-  // Toggle layer visibility based on amenitySelected
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    const setVisible = (id: string, on: boolean) => {
-      if (!map.getLayer(id)) return;
-      map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    };
-    setVisible('l-amenity-schools', !!amenitySelected['Schools']);
-    setVisible('l-amenity-hospitals', !!amenitySelected['Hospitals']);
-    setVisible('l-amenity-supermarkets', !!amenitySelected['Supermarkets']);
-    setVisible('l-amenity-transit', !!amenitySelected['Transit']);
-  }, [amenitySelected]);
+  // Note: Amenity layer visibility toggle removed - will be reimplemented with proper data source
 
   return (
     <div>
