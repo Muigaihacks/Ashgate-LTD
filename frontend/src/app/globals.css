@@ -103,3 +103,23 @@ body {
 /* Hide scrollbars for horizontal carousels */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Testimonials continuous scroll animation */
+@keyframes scroll-testimonials {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.testimonials-container {
+  animation: scroll-testimonials 30s linear infinite;
+  animation-play-state: running;
+  will-change: transform;
+}
+
+.testimonials-container.paused {
+  animation-play-state: paused;
+}

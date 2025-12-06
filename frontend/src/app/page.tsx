@@ -31,7 +31,9 @@ import {
   Facebook,
   Instagram,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  ZoomIn
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -289,6 +291,33 @@ export default function HomePage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<typeof featuredListings[0] | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
+
+  // Reset image index when listing changes
+  useEffect(() => {
+    if (selectedListing) {
+      setSelectedImageIndex(0);
+      setIsImageZoomed(false);
+    }
+  }, [selectedListing]);
+
+  // Keyboard navigation for zoomed images
+  useEffect(() => {
+    if (!isImageZoomed || !selectedListing?.images) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setSelectedImageIndex((prev) => (prev === 0 ? selectedListing.images.length - 1 : prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImageIndex((prev) => (prev === selectedListing.images.length - 1 ? 0 : prev + 1));
+      } else if (e.key === 'Escape') {
+        setIsImageZoomed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isImageZoomed, selectedListing]);
 
   // Expose listings for listings page (temporary until API)
   useEffect(() => {
@@ -296,6 +325,74 @@ export default function HomePage() {
       (window as any).__ASHGATE_LISTINGS__ = featuredListings;
     }
   }, [featuredListings]);
+
+  // Testimonials data with social media links
+  const testimonials = [
+    {
+      id: 1,
+      initials: 'SM',
+      name: 'Sarah Mwangi',
+      title: 'Property Owner, Nairobi',
+      text: 'Ashgate helped me find the perfect apartment in Westlands within my budget. Their property management service is exceptional - rent collection is automated and maintenance requests are handled promptly.',
+      rating: 5,
+      socialMedia: 'https://twitter.com/sarahmwangi', // Placeholder - update with actual links
+      platform: 'Twitter'
+    },
+    {
+      id: 2,
+      initials: 'JK',
+      name: 'James Kiprop',
+      title: 'Land Developer, Nakuru',
+      text: 'The land development advisory service was a game-changer. Ashgate connected me with the right quantity surveyor and helped me navigate all the regulatory requirements. My project is now profitable!',
+      rating: 5,
+      socialMedia: 'https://linkedin.com/in/jameskiprop', // Placeholder - update with actual links
+      platform: 'LinkedIn'
+    },
+    {
+      id: 3,
+      initials: 'AO',
+      name: 'Aisha Ochieng',
+      title: 'Expatriate, Kampala',
+      text: 'As an expatriate relocating to Uganda, Ashgate\'s specialized service was invaluable. They found me a fully furnished home and connected me with interior designers. The transition was seamless!',
+      rating: 5,
+      socialMedia: 'https://facebook.com/aishaochieng', // Placeholder - update with actual links
+      platform: 'Facebook'
+    },
+    {
+      id: 4,
+      initials: 'DN',
+      name: 'David Njoroge',
+      title: 'Investor, Mombasa',
+      text: 'The carbon credits integration feature is brilliant! I can track my property\'s environmental impact and get certified as a green building. It\'s the future of real estate.',
+      rating: 5,
+      socialMedia: 'https://twitter.com/davidnjoroge', // Placeholder - update with actual links
+      platform: 'Twitter'
+    },
+    {
+      id: 5,
+      initials: 'LM',
+      name: 'Linda Mwangi',
+      title: 'Landlord, Kisumu',
+      text: 'Managing multiple properties was a nightmare until I found Ashgate. Their integrated payment system with M-Pesa makes rent collection effortless, and the maintenance tracking is top-notch.',
+      rating: 5,
+      socialMedia: 'https://linkedin.com/in/lindamwangi', // Placeholder - update with actual links
+      platform: 'LinkedIn'
+    },
+    {
+      id: 6,
+      initials: 'RT',
+      name: 'Robert Tembo',
+      title: 'Business Owner, Dar es Salaam',
+      text: 'The expert network is incredible! When I needed a solar installer, Ashgate connected me with a verified professional who completed the job perfectly. The platform truly delivers on its promises.',
+      rating: 5,
+      socialMedia: 'https://facebook.com/roberttembo', // Placeholder - update with actual links
+      platform: 'Facebook'
+    },
+  ];
+
+  // Testimonials carousel - continuous smooth scrolling with pause on hover
+  const testimonialsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [isTestimonialsHovered, setIsTestimonialsHovered] = useState(false);
 
   const features = [
     {
@@ -1014,133 +1111,48 @@ export default function HomePage() {
               Don&apos;t just take our word for it — hear from satisfied customers who found their perfect property through Ashgate.
             </p>
           </div>
-          <div className="relative">
-            <div className="flex overflow-x-auto gap-6 snap-x snap-mandatory scrollbar-hide pb-2">
-            {/* Testimonial 1 */}
-            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+          <div className="relative overflow-hidden">
+            <div 
+              ref={testimonialsScrollRef}
+              className={`testimonials-container flex gap-6 pb-2 ${isTestimonialsHovered ? 'paused' : ''}`}
+              onMouseEnter={() => setIsTestimonialsHovered(true)}
+              onMouseLeave={() => setIsTestimonialsHovered(false)}
+            >
+              {/* Render testimonials twice for seamless loop */}
+              {[...testimonials, ...testimonials].map((testimonial, idx) => (
+                <div 
+                  key={`${testimonial.id}-${idx}`}
+                  className="flex-shrink-0 min-w-[320px] max-w-[360px] bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  onClick={() => {
+                    if (testimonial.socialMedia) {
+                      window.open(testimonial.socialMedia, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                >
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-primary-600 font-bold text-lg">SM</span>
+                      <span className="text-primary-600 font-bold text-lg">{testimonial.initials}</span>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Sarah Mwangi</h4>
-                  <p className="text-gray-600 text-sm">Property Owner, Nairobi</p>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
+                      <p className="text-gray-600 text-sm">{testimonial.title}</p>
                 </div>
+                    {testimonial.socialMedia && (
+                      <div className="text-xs text-primary-600 font-medium opacity-70 hover:opacity-100 transition-opacity">
+                        {testimonial.platform} →
+              </div>
+                    )}
               </div>
               <p className="text-gray-700 leading-relaxed">
-                &quot;Ashgate helped me find the perfect apartment in Westlands within my budget. Their property management service is exceptional - rent collection is automated and maintenance requests are handled promptly.&quot;
+                    &quot;{testimonial.text}&quot;
               </p>
               <div className="flex text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
+                    {[...Array(testimonial.rating)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-current" />
                 ))}
               </div>
             </div>
-
-            {/* Testimonial 2 */}
-            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-primary-600 font-bold text-lg">JK</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">James Kiprop</h4>
-                  <p className="text-gray-600 text-sm">Land Developer, Nakuru</p>
-                </div>
-              </div>
-              <p className="text-gray-700 leading-relaxed">
-                &quot;The land development advisory service was a game-changer. Ashgate connected me with the right quantity surveyor and helped me navigate all the regulatory requirements. My project is now profitable!&quot;
-              </p>
-              <div className="flex text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-primary-600 font-bold text-lg">AO</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Aisha Ochieng</h4>
-                  <p className="text-gray-600 text-sm">Expatriate, Kampala</p>
-                </div>
-              </div>
-              <p className="text-gray-700 leading-relaxed">
-                &quot;As an expatriate relocating to Uganda, Ashgate&apos;s specialized service was invaluable. They found me a fully furnished home and connected me with interior designers. The transition was seamless!&quot;
-              </p>
-              <div className="flex text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-            </div>
-
-            {/* Testimonial 4 */}
-            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-primary-600 font-bold text-lg">DN</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">David Njoroge</h4>
-                  <p className="text-gray-600 text-sm">Investor, Mombasa</p>
-                </div>
-              </div>
-              <p className="text-gray-700 leading-relaxed">
-                &quot;The carbon credits integration feature is brilliant! I can track my property&apos;s environmental impact and get certified as a green building. It&apos;s the future of real estate.&quot;
-              </p>
-              <div className="flex text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-            </div>
-
-            {/* Testimonial 5 */}
-            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-primary-600 font-bold text-lg">LM</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Linda Mwangi</h4>
-                  <p className="text-gray-600 text-sm">Landlord, Kisumu</p>
-                </div>
-              </div>
-              <p className="text-gray-700 leading-relaxed">
-                &quot;Managing multiple properties was a nightmare until I found Ashgate. Their integrated payment system with M-Pesa makes rent collection effortless, and the maintenance tracking is top-notch.&quot;
-              </p>
-              <div className="flex text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-            </div>
-
-            {/* Testimonial 6 */}
-            <div className="min-w-[320px] max-w-[360px] snap-start bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-primary-600 font-bold text-lg">RT</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Robert Tembo</h4>
-                  <p className="text-gray-600 text-sm">Business Owner, Dar es Salaam</p>
-                </div>
-              </div>
-              <p className="text-gray-700 leading-relaxed">
-                &quot;The expert network is incredible! When I needed a solar installer, Ashgate connected me with a verified professional who completed the job perfectly. The platform truly delivers on its promises.&quot;
-              </p>
-              <div className="flex text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-            </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1275,8 +1287,15 @@ export default function HomePage() {
                     <img 
                       src={selectedListing.images[selectedImageIndex]} 
                       alt={`${selectedListing.title} - Image ${selectedImageIndex + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover cursor-zoom-in"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsImageZoomed(true);
+                      }}
                     />
+                    <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ZoomIn className="w-5 h-5" />
+                    </div>
                     {selectedListing.images.length > 1 && (
                       <>
                         <button
@@ -1323,7 +1342,7 @@ export default function HomePage() {
                     )}
                   </div>
                 ) : (
-                  <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
+                <div className="h-72 bg-gray-200 flex items-center justify-center">Image Gallery (placeholder)</div>
                 )}
                 {/* Spec bar under gallery */}
                 <div className="px-6 py-3 border-t border-gray-200">
@@ -1368,7 +1387,88 @@ export default function HomePage() {
             </div>
 
             <div className="p-5 border-t border-gray-200 flex justify-end">
-              <button className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => { setIsDetailsOpen(false); setSelectedListing(null); setSelectedImageIndex(0); }}>Close</button>
+              <button className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => { setIsDetailsOpen(false); setSelectedListing(null); setSelectedImageIndex(0); setIsImageZoomed(false); }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {isImageZoomed && selectedListing && selectedListing.images && selectedListing.images.length > 0 && (
+        <div 
+          className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setIsImageZoomed(false)}
+        >
+          <div className="relative w-full h-full flex items-center justify-center max-w-7xl mx-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setIsImageZoomed(false)}
+              className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors"
+              aria-label="Close zoom"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Main zoomed image */}
+            <img
+              src={selectedListing.images[selectedImageIndex]}
+              alt={`${selectedListing.title} - Image ${selectedImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {/* Navigation arrows */}
+            {selectedListing.images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex((prev) => (prev === 0 ? selectedListing.images.length - 1 : prev - 1));
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-4 rounded-full transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex((prev) => (prev === selectedListing.images.length - 1 ? 0 : prev + 1));
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-4 rounded-full transition-colors"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+
+                {/* Image counter */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+                  {selectedImageIndex + 1} / {selectedListing.images.length}
+                </div>
+
+                {/* Thumbnail strip */}
+                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 max-w-4xl overflow-x-auto px-4">
+                  {selectedListing.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIndex(idx);
+                      }}
+                      className={`flex-shrink-0 w-20 h-16 rounded overflow-hidden border-2 transition-all ${
+                        idx === selectedImageIndex ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Keyboard navigation hints */}
+            <div className="absolute bottom-4 right-4 text-white/50 text-xs">
+              Use arrow keys or click to navigate
             </div>
           </div>
         </div>
@@ -1772,10 +1872,11 @@ export default function HomePage() {
 
 // Tabs component scoped in this file for simplicity
 function Tabs({ selectedListing }: { selectedListing: any }) {
-  const [active, setActive] = useState<'overview' | 'map' | 'floor' | 'tour'>('overview');
+  const [active, setActive] = useState<'map' | 'floor' | 'tour'>('map');
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
   const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+  const GEOAPIFY_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_KEY;
   const [mapToast, setMapToast] = useState<string>('');
 
   // Load MapLibre JS/CSS on demand
@@ -1820,13 +1921,127 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
           setMapToast('Map failed to load. Check your internet or API key.');
         }
       });
-      // Note: Amenity layers removed as MapTiler style doesn't include POI source
-      // This feature will be reimplemented with proper data source in future update
+      
+      // Fetch and display amenities using Geoapify Places API
+      map.on('load', async () => {
+        try {
+          if (!GEOAPIFY_KEY) {
+            console.warn('GEOAPIFY_KEY not set. Amenities will not be displayed.');
+            return;
+          }
+
+          const lat = center[1];
+          const lng = center[0];
+          const radius = 1000; // 1km radius
+          
+          // Geoapify Places API categories
+          // Using Geoapify category hierarchy: https://www.geoapify.com/places-categories
+          const amenityCategories: Record<string, string[]> = {
+            'Schools': ['education.school', 'education.university', 'education.college'],
+            'Hospitals': ['healthcare.hospital', 'healthcare.clinic', 'healthcare.pharmacy'],
+            'Supermarkets': ['commercial.supermarket', 'commercial.marketplace'],
+            'Transit': ['public_transport.bus_station', 'public_transport.train_station', 'public_transport.subway_station', 'public_transport.bus_stop'],
+          };
+
+          const amenityColors: Record<string, string> = {
+            'Schools': '#2563eb',
+            'Hospitals': '#dc2626',
+            'Supermarkets': '#16a34a',
+            'Transit': '#7c3aed',
+          };
+
+          // Fetch amenities for each category
+          const allAmenities: any[] = [];
+          
+          for (const [category, categories] of Object.entries(amenityCategories)) {
+            try {
+              const categoriesParam = categories.join(',');
+              const url = `https://api.geoapify.com/v2/places?categories=${categoriesParam}&filter=circle:${lng},${lat},${radius}&limit=50&apiKey=${GEOAPIFY_KEY}`;
+              
+              const response = await fetch(url);
+              if (!response.ok) {
+                console.error(`Failed to fetch ${category} amenities:`, response.statusText);
+                continue;
+              }
+              
+              const data = await response.json();
+              const features = data.features || [];
+              
+              features.forEach((feature: any) => {
+                const coords = feature.geometry?.coordinates;
+                if (coords && coords.length === 2) {
+                  allAmenities.push({
+                    lat: coords[1],
+                    lon: coords[0],
+                    category,
+                    name: feature.properties?.name || feature.properties?.formatted || 'Unnamed',
+                  });
+                }
+              });
+            } catch (error) {
+              console.error(`Error fetching ${category} amenities:`, error);
+            }
+          }
+
+          // Create GeoJSON
+          const geoJsonData = {
+            type: 'FeatureCollection',
+            features: allAmenities.map((amenity) => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [amenity.lon, amenity.lat],
+              },
+              properties: {
+                category: amenity.category,
+                name: amenity.name,
+              },
+            })),
+          };
+
+          // Add GeoJSON source
+          if (map.getSource('amenities')) {
+            (map.getSource('amenities') as any).setData(geoJsonData);
+          } else {
+            map.addSource('amenities', {
+              type: 'geojson',
+              data: geoJsonData as any,
+            });
+          }
+
+          // Add layers for each category
+          Object.keys(amenityCategories).forEach((category) => {
+            const layerId = `amenities-${category.toLowerCase()}`;
+            
+            if (map.getLayer(layerId)) {
+              map.setLayoutProperty(layerId, 'visibility', 'none');
+              return;
+            }
+            
+          map.addLayer({
+              id: layerId,
+            type: 'circle',
+              source: 'amenities',
+              filter: ['==', ['get', 'category'], category],
+            paint: {
+                'circle-radius': 6,
+                'circle-color': amenityColors[category] || '#666666',
+                'circle-opacity': 0.8,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+              },
+            });
+            map.setLayoutProperty(layerId, 'visibility', 'none');
+          });
+        } catch (error) {
+          console.error('Error fetching amenities:', error);
+        }
+      });
     });
     return () => {
       // No teardown to keep simple; modal close unmounts container
     };
-  }, [active, MAPTILER_KEY, selectedListing]);
+  }, [active, MAPTILER_KEY, GEOAPIFY_KEY, selectedListing]);
 
   const amenityChips = ['Schools', 'Hospitals', 'Supermarkets', 'Transit'];
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -1837,15 +2052,53 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
   };
 
   // Toggle amenity layer visibility when chips change
-  // Note: Amenity layer visibility toggle removed - will be reimplemented with proper data source
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    
+    const amenityChips = ['Schools', 'Hospitals', 'Supermarkets', 'Transit'];
+    amenityChips.forEach((category) => {
+      const layerId = `amenities-${category.toLowerCase()}`;
+      if (map.getLayer(layerId)) {
+        const isVisible = selectedAmenities.includes(category);
+        map.setLayoutProperty(layerId, 'visibility', isVisible ? 'visible' : 'none');
+      }
+    });
+  }, [selectedAmenities]);
 
   return (
     <div>
       <div className="flex gap-4 text-sm flex-wrap">
-        <button onClick={() => setActive('overview')} className={`${active==='overview'?'font-semibold text-gray-900':'text-gray-600'}`}>Overview</button>
-        <button onClick={() => setActive('map')} className={`${active==='map'?'font-semibold text-gray-900':'text-gray-600'}`}>Map & Amenities</button>
-        <button onClick={() => setActive('floor')} className={`${active==='floor'?'font-semibold text-gray-900':'text-gray-600'}`}>Floor Plan</button>
-        <button onClick={() => setActive('tour')} className={`${active==='tour'?'font-semibold text-gray-900':'text-gray-600'}`}>3D Tour</button>
+        <button 
+          onClick={() => setActive('map')} 
+          className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+            active==='map'
+              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/50 ring-2 ring-orange-400 ring-offset-2' 
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Map & Amenities
+        </button>
+        <button 
+          onClick={() => setActive('floor')} 
+          className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+            active==='floor'
+              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/50 ring-2 ring-orange-400 ring-offset-2' 
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Floor Plan
+        </button>
+        <button 
+          onClick={() => setActive('tour')} 
+          className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+            active==='tour'
+              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/50 ring-2 ring-orange-400 ring-offset-2' 
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          3D Tour
+        </button>
       </div>
       {mapToast && (
         <div className="fixed bottom-6 right-6 z-[100] bg-black text-white text-sm px-4 py-2 rounded shadow">
@@ -1853,24 +2106,14 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
         </div>
       )}
 
-      {active === 'overview' && (
-        <div className="mt-4 text-gray-700">
-          <p className="mb-4">Elegant property in {selectedListing?.location}. Great connectivity and neighborhood amenities.</p>
-          <div className="flex flex-wrap gap-4 text-sm">
-            {selectedListing?.specs?.beds ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><Bed className="w-4 h-4"/> {selectedListing.specs.beds} Beds</span>) : null}
-            {selectedListing?.specs?.baths ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><Bath className="w-4 h-4"/> {selectedListing.specs.baths} Baths</span>) : null}
-            {selectedListing?.specs?.parking ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><CarFront className="w-4 h-4"/> {selectedListing.specs.parking} Parking</span>) : null}
-            {selectedListing?.specs?.area ? (<span className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full"><Ruler className="w-4 h-4"/> {selectedListing.specs.area} m²</span>) : null}
-            {/* Year removed per design */}
-            {/* Room for more: Wifi, Pool, Gym, Backup Power, Security */}
-          </div>
-        </div>
-      )}
 
       {active === 'map' && (
         <div className="mt-4">
-          {!MAPTILER_KEY ? (
-            <div className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">Set NEXT_PUBLIC_MAPTILER_KEY in your env to enable the map.</div>
+          {(!MAPTILER_KEY || !GEOAPIFY_KEY) ? (
+            <div className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
+              {!MAPTILER_KEY && 'Set NEXT_PUBLIC_MAPTILER_KEY in your env to enable the map. '}
+              {!GEOAPIFY_KEY && 'Set NEXT_PUBLIC_GEOAPIFY_KEY in your env to display amenities.'}
+            </div>
           ) : null}
           <div className="flex gap-2 flex-wrap mb-3">
             {amenityChips.map((a) => (
