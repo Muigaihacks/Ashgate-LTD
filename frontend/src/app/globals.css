@@ -123,3 +123,8 @@ body {
 .testimonials-container.paused {
   animation-play-state: paused;
 }
+
+/* Featured Listings - hide scrollbar */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}

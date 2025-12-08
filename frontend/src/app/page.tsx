@@ -33,7 +33,9 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  ZoomIn
+  ZoomIn,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -69,10 +71,15 @@ export default function HomePage() {
   });
   const [currentVideo, setCurrentVideo] = useState('/videos/hero-video2.mp4'); // Fixed to video2
   const [logoStyle, setLogoStyle] = useState('bright'); // 'bright' or 'dark' based on video
+  const [logoGlow, setLogoGlow] = useState(0.6); // controls intensity of logo backlight
   const [videoIndex, setVideoIndex] = useState(0);
   const [isSequentialMode, setIsSequentialMode] = useState(false); // Switched to time-based mode
   const [mounted, setMounted] = useState(false); // For hydration fix
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+  const [showCookieSettings, setShowCookieSettings] = useState(false);
+  const [videoFade, setVideoFade] = useState(true); // For smooth video transitions
+  const [isManuallyScrolling, setIsManuallyScrolling] = useState(false);
 
   useEffect(() => {
     if (isUserLoggedIn) {
@@ -111,6 +118,43 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Time-based video selection (daypart scheduling) with smooth transitions
+  const setVideoByTime = () => {
+    const hour = new Date().getHours();
+    let newVideo = '';
+    let newStyle = '';
+    let newGlow = 0;
+    
+    if (hour >= 5 && hour < 10) {
+      newVideo = '/videos/hero-video1.mp4';
+      newStyle = 'bright';
+      newGlow = 0.35;
+    } else if (hour >= 10 && hour < 17) {
+      newVideo = '/videos/hero-video2.mp4';
+      newStyle = 'dark';
+      newGlow = 0.45;
+    } else if (hour >= 17 && hour < 22) {
+      newVideo = '/videos/hero-video3.mp4';
+      newStyle = 'bright';
+      newGlow = 0.65;
+    } else {
+      newVideo = '/videos/hero-video4.mp4';
+      newStyle = 'bright';
+      newGlow = 0.9;
+    }
+    
+    // Smooth transition: fade out, change video, fade in
+    if (currentVideo !== newVideo) {
+      setVideoFade(false);
+      setTimeout(() => {
+        setCurrentVideo(newVideo);
+        setLogoStyle(newStyle);
+        setLogoGlow(newGlow);
+        setVideoFade(true);
+      }, 500); // Half second fade transition
+    }
+  };
+
   // Sequential video testing - cycles through all videos
   useEffect(() => {
     if (isSequentialMode) {
@@ -125,13 +169,16 @@ export default function HomePage() {
       
       return () => clearInterval(interval);
     }
-  }, [videoIndex, isSequentialMode]);
+  }, [videoIndex, isSequentialMode, videos]);
 
-  // Fixed video selection (always video2)
+  // Time-based scheduling (default mode)
   useEffect(() => {
-    setCurrentVideo('/videos/hero-video2.mp4');
-    setLogoStyle('dark');
-  }, []);
+    if (!isSequentialMode) {
+      setVideoByTime();
+      const timer = setInterval(setVideoByTime, 5 * 60 * 1000); // refresh every 5 minutes
+      return () => clearInterval(timer);
+    }
+  }, [isSequentialMode]);
 
   // Real estate icons for rotation - more detailed and professional
   const realEstateIcons = [
@@ -280,6 +327,7 @@ export default function HomePage() {
   ];
 
   const listingsScrollRef = useRef<HTMLDivElement | null>(null);
+  const listingsAutoScrollRef = useRef<number | null>(null);
   const scrollListings = (direction: 'left' | 'right') => {
     const container = listingsScrollRef.current;
     if (!container) return;
@@ -292,6 +340,7 @@ export default function HomePage() {
   const [selectedListing, setSelectedListing] = useState<typeof featuredListings[0] | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [isListingsHover, setIsListingsHover] = useState(false);
 
   // Reset image index when listing changes
   useEffect(() => {
@@ -325,6 +374,90 @@ export default function HomePage() {
       (window as any).__ASHGATE_LISTINGS__ = featuredListings;
     }
   }, [featuredListings]);
+
+  // Cookie banner visibility - show every time page loads
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Always show cookie banner on page load
+    setShowCookieBanner(true);
+  }, []);
+
+  const acceptCookies = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ashgate_cookie_consent', 'accepted');
+      localStorage.setItem('ashgate_cookie_preferences', JSON.stringify({
+        necessary: true,
+        analytics: true,
+        marketing: true
+      }));
+    }
+    setShowCookieBanner(false);
+    setShowCookieSettings(false);
+  };
+
+  const manageCookies = () => {
+    setShowCookieSettings(true);
+  };
+
+  const saveCookiePreferences = () => {
+    // This will be implemented when lawyer provides final policy
+    // For now, just accept all
+    acceptCookies();
+  };
+
+  // Auto-scroll featured listings - seamless infinite loop with smooth animation
+  useEffect(() => {
+    if (isManuallyScrolling) {
+      if (listingsAutoScrollRef.current) {
+        cancelAnimationFrame(listingsAutoScrollRef.current);
+        listingsAutoScrollRef.current = null;
+      }
+      return;
+    }
+    
+    const container = listingsScrollRef.current;
+    if (!container) return;
+    
+    // Calculate one set width (one full set of listings)
+    const oneSetWidth = container.scrollWidth / 3;
+    const scrollSpeed = 0.8; // pixels per frame (smooth and visible)
+    
+    let lastTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      if (!container) return;
+      
+      // If paused on hover, don't scroll but keep animation running
+      if (!isListingsHover) {
+        const deltaTime = currentTime - lastTime;
+        const normalizedSpeed = scrollSpeed * (deltaTime / 16); // Normalize to 60fps
+        
+        container.scrollLeft += normalizedSpeed;
+        
+        // When we've scrolled through one full set, instantly reset to 0 (seamless loop)
+        if (container.scrollLeft >= oneSetWidth) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft = 0;
+          // Re-enable smooth scrolling after reset
+          requestAnimationFrame(() => {
+            container.style.scrollBehavior = 'smooth';
+          });
+        }
+      }
+      
+      lastTime = currentTime;
+      listingsAutoScrollRef.current = requestAnimationFrame(animate);
+    };
+    
+    listingsAutoScrollRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (listingsAutoScrollRef.current) {
+        cancelAnimationFrame(listingsAutoScrollRef.current);
+        listingsAutoScrollRef.current = null;
+      }
+    };
+  }, [isListingsHover, isManuallyScrolling]);
 
   // Testimonials data with social media links
   const testimonials = [
@@ -515,7 +648,7 @@ export default function HomePage() {
             </div>
             
             {/* Center - Rotating Real Estate Icons with Carousel Effect */}
-            <div className="flex-shrink-0 flex items-center justify-center ml-36">
+            <div className="flex-shrink-0 flex items-center justify-center ml-56">
               <div className="relative w-20 h-16 overflow-hidden">
                 {/* Previous icon sliding out */}
                 <div 
@@ -698,7 +831,7 @@ export default function HomePage() {
 
       {/* Hero Section with Video Background */}
       <section className="relative bg-gradient-to-b from-gray-900 to-gray-800 pt-4 pb-16 overflow-hidden min-h-[600px]">
-        {/* Video Background - Time-based switching */}
+        {/* Video Background - Time-based switching with smooth transitions */}
         {mounted && currentVideo && (
           <video
             key={currentVideo} // Force re-render when video changes
@@ -706,14 +839,19 @@ export default function HomePage() {
             loop
             muted
             playsInline
-            className="absolute top-0 left-0 w-full h-full object-cover z-0"
+            className="absolute top-0 left-0 w-full h-full object-cover z-0 transition-opacity duration-500 ease-in-out"
             style={{ 
               minHeight: '100%', 
               objectPosition: 'center',
               width: '100%',
-              height: '100%'
+              height: '100%',
+              opacity: videoFade ? 1 : 0
             }}
             poster="/images/hero-placeholder.jpg"
+            onLoadedData={(e) => {
+              // Ensure video fades in smoothly when loaded
+              setVideoFade(true);
+            }}
             onError={(e) => {
               // Silent fail; toast is handled elsewhere
               // Force fallback image immediately
@@ -755,13 +893,13 @@ export default function HomePage() {
                   top: '70%',
                   transform: 'translate(-50%, -50%)',
                   background: logoStyle === 'bright' 
-                    ? 'rgba(255, 255, 255, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.2)',
+                    ? 'rgba(255, 255, 255, 0.18)' 
+                    : 'rgba(0, 0, 0, 0.25)',
                   backdropFilter: 'blur(10px)',
                   border: logoStyle === 'bright'
                     ? '2px solid rgba(255, 255, 255, 0.4)'
-                    : '2px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    : '2px solid rgba(255, 255, 255, 0.25)',
+                  boxShadow: `0 0 40px rgba(255, 255, 255, ${logoGlow}), 0 10px 40px rgba(0,0,0,0.35)`,
                   zIndex: 1
                 }}
               ></div>
@@ -884,21 +1022,64 @@ export default function HomePage() {
             <h2 className="text-4xl font-bold text-gray-900 mb-3">Featured <span className="text-primary-600">Listings</span></h2>
             <p className="text-gray-600 max-w-3xl mx-auto">A snapshot of premium homes, apartments, land and commercial spaces on Ashgate.</p>
           </div>
-          <div className="relative">
-            <button aria-label="Prev" onClick={() => scrollListings('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow rounded-full w-10 h-10 flex items-center justify-center">
-              <span className="sr-only">Previous</span>
-              ‹
+          <div className="relative overflow-hidden pr-16">
+            {/* Navigation Arrows */}
+            <button 
+              aria-label="Previous" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsManuallyScrolling(true);
+                const container = listingsScrollRef.current;
+                if (container) {
+                  // Scroll by approximately one card width (380px card + 24px gap = ~400px)
+                  container.scrollBy({ left: -404, behavior: 'smooth' });
+                  // Re-enable auto-scroll after a delay
+                  setTimeout(() => setIsManuallyScrolling(false), 2000);
+                }
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center transition-all hover:scale-110"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-700" />
             </button>
-            <button aria-label="Next" onClick={() => scrollListings('right')} className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow rounded-full w-10 h-10 flex items-center justify-center">
-              <span className="sr-only">Next</span>
-              ›
+            <button 
+              aria-label="Next" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsManuallyScrolling(true);
+                const container = listingsScrollRef.current;
+                if (container) {
+                  // Scroll by approximately one card width (380px card + 24px gap = ~400px)
+                  container.scrollBy({ left: 404, behavior: 'smooth' });
+                  // Re-enable auto-scroll after a delay
+                  setTimeout(() => setIsManuallyScrolling(false), 2000);
+                }
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center transition-all hover:scale-110"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-700" />
             </button>
-
-            <div ref={listingsScrollRef} className="flex overflow-x-auto gap-6 snap-x snap-mandatory scrollbar-hide pb-2">
-              {featuredListings.map((item) => {
+            
+            <div 
+              ref={listingsScrollRef}
+              className="flex gap-6 pb-2 overflow-x-auto"
+              style={{ 
+                scrollbarWidth: 'none', 
+                msOverflowStyle: 'none',
+                scrollBehavior: 'smooth'
+              }}
+              onMouseEnter={() => setIsListingsHover(true)}
+              onMouseLeave={() => setIsListingsHover(false)}
+              onScroll={() => {
+                // Detect manual scrolling
+                setIsManuallyScrolling(true);
+                setTimeout(() => setIsManuallyScrolling(false), 2000);
+              }}
+            >
+              {/* Render listings three times for seamless infinite loop */}
+              {[...featuredListings, ...featuredListings, ...featuredListings].map((item, idx) => {
                 const isDirectOwner = item.source === 'owner' || item.broker === 'Direct Owner';
                 return (
-                <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => { setSelectedListing(item); setIsDetailsOpen(true); setSelectedImageIndex(0); }}>
+                <div key={`${item.id}-${idx}`} className="flex-shrink-0 w-[380px] bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => { setSelectedListing(item); setIsDetailsOpen(true); setSelectedImageIndex(0); }}>
                   <div className={`px-5 pt-4 text-xs font-semibold ${isDirectOwner ? 'text-blue-600' : 'text-gray-500'}`}>
                     {isDirectOwner ? 'Direct Owner' : item.broker}
                   </div>
@@ -1247,9 +1428,131 @@ export default function HomePage() {
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
             <p>&copy; 2024 Ashgate Limited. All rights reserved. | Building dreams, one property at a time.</p>
+            <div className="mt-4 text-sm text-gray-400">
+              <span className="mr-2">Crafted with precision by</span>
+              <a 
+                href="https://tyrese-portfolio-black.vercel.app/#home" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-primary-300 hover:text-primary-100 font-semibold transition-colors duration-200 underline decoration-primary-500/50 hover:decoration-primary-400"
+              >
+                Kratos Systems LTD
+              </a>
+              <span className="ml-2">— You Dream it, We Build it!</span>
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Cookie Banner */}
+      {showCookieBanner && !showCookieSettings && (
+        <div className="fixed inset-x-0 bottom-4 z-50 px-4">
+          <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex-1 text-sm text-gray-800 space-y-2">
+                <p className="font-bold text-lg text-gray-900">We Use Cookies</p>
+                <p className="text-gray-700 leading-relaxed">
+                  At Ashgate Limited, we respect your privacy and are committed to protecting your personal data. 
+                  We use cookies and similar tracking technologies to enhance your browsing experience, analyze site traffic, 
+                  personalize content, and provide social media features. Cookies are small text files that are placed on your 
+                  device when you visit our website.
+                </p>
+                <p className="text-gray-600 text-xs leading-relaxed">
+                  By clicking &quot;Accept All&quot;, you consent to our use of cookies in accordance with our Cookie Policy. 
+                  You can manage your cookie preferences at any time by clicking &quot;Manage Cookies&quot;. 
+                  For more information, please review our Privacy Policy and Cookie Policy.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+                <button
+                  onClick={acceptCookies}
+                  className="px-5 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 shadow-sm transition-colors"
+                >
+                  Accept All
+                </button>
+                <button
+                  onClick={manageCookies}
+                  className="px-5 py-2.5 rounded-lg border-2 border-primary-600 text-primary-600 text-sm font-semibold hover:bg-primary-50 transition-colors"
+                >
+                  Manage Cookies
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCookieBanner(false);
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('ashgate_cookie_consent', 'dismissed');
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cookie Settings Modal */}
+      {showCookieBanner && showCookieSettings && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-2xl font-bold text-gray-900">Cookie Preferences</h3>
+              <p className="text-sm text-gray-600 mt-1">Manage your cookie settings. You can enable or disable different types of cookies below.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-1">Necessary Cookies</h4>
+                  <p className="text-sm text-gray-600">These cookies are essential for the website to function properly. They cannot be disabled.</p>
+                </div>
+                <div className="ml-4">
+                  <input type="checkbox" checked disabled className="w-5 h-5 rounded border-gray-300 text-primary-600" />
+                </div>
+              </div>
+              <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-1">Analytics Cookies</h4>
+                  <p className="text-sm text-gray-600">Help us understand how visitors interact with our website by collecting and reporting information anonymously.</p>
+                </div>
+                <div className="ml-4">
+                  <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                </div>
+              </div>
+              <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-1">Marketing Cookies</h4>
+                  <p className="text-sm text-gray-600">Used to track visitors across websites to display relevant advertisements and measure campaign effectiveness.</p>
+                </div>
+                <div className="ml-4">
+                  <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex flex-col sm:flex-row gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowCookieSettings(false);
+                  setShowCookieBanner(false);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('ashgate_cookie_consent', 'dismissed');
+                  }
+                }}
+                className="px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveCookiePreferences}
+                className="px-5 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 shadow-sm transition-colors"
+              >
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Scroll to Top Button */}
       {showScrollToTop && (
@@ -1371,9 +1674,16 @@ export default function HomePage() {
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
                   <div className="font-semibold text-gray-900 mb-1">{selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Contact Owner' : 'Contact Agent'}</div>
                   <p className="text-sm text-gray-600 mb-3">Have questions or want to schedule a tour?</p>
-                  <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">
-                    {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Email Owner' : 'Email Agent'}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700 transition-colors">
+                      <Mail className="w-4 h-4" />
+                      {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Email Owner' : 'Email Agent'}
+                    </button>
+                    <button className="w-full flex items-center justify-center gap-2 bg-gray-700 text-white rounded-lg py-3 font-semibold hover:bg-gray-800 transition-colors">
+                      <Phone className="w-4 h-4" />
+                      {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Call Owner' : 'Call Agent'}
+                    </button>
+                  </div>
                 </div>
                 <div className="text-sm text-gray-600">Listed by: <span className={`font-semibold ${selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-900'}`}>
                   {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Direct Owner' : selectedListing.broker}
