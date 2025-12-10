@@ -80,6 +80,14 @@ export default function HomePage() {
   const [showCookieSettings, setShowCookieSettings] = useState(false);
   const [videoFade, setVideoFade] = useState(true); // For smooth video transitions
   const [isManuallyScrolling, setIsManuallyScrolling] = useState(false);
+  
+  // Ref to track current video for comparison without stale closure
+  const currentVideoRef = useRef(currentVideo);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentVideoRef.current = currentVideo;
+  }, [currentVideo]);
 
   useEffect(() => {
     if (isUserLoggedIn) {
@@ -118,43 +126,6 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Time-based video selection (daypart scheduling) with smooth transitions
-  const setVideoByTime = () => {
-    const hour = new Date().getHours();
-    let newVideo = '';
-    let newStyle = '';
-    let newGlow = 0;
-    
-    if (hour >= 5 && hour < 10) {
-      newVideo = '/videos/hero-video1.mp4';
-      newStyle = 'bright';
-      newGlow = 0.35;
-    } else if (hour >= 10 && hour < 17) {
-      newVideo = '/videos/hero-video2.mp4';
-      newStyle = 'dark';
-      newGlow = 0.45;
-    } else if (hour >= 17 && hour < 22) {
-      newVideo = '/videos/hero-video3.mp4';
-      newStyle = 'bright';
-      newGlow = 0.65;
-    } else {
-      newVideo = '/videos/hero-video4.mp4';
-      newStyle = 'bright';
-      newGlow = 0.9;
-    }
-    
-    // Smooth transition: fade out, change video, fade in
-    if (currentVideo !== newVideo) {
-      setVideoFade(false);
-      setTimeout(() => {
-        setCurrentVideo(newVideo);
-        setLogoStyle(newStyle);
-        setLogoGlow(newGlow);
-        setVideoFade(true);
-      }, 500); // Half second fade transition
-    }
-  };
-
   // Sequential video testing - cycles through all videos
   useEffect(() => {
     if (isSequentialMode) {
@@ -171,11 +142,51 @@ export default function HomePage() {
     }
   }, [videoIndex, isSequentialMode, videos]);
 
-  // Time-based scheduling (default mode)
+  // Time-based scheduling (default mode) with smooth transitions
   useEffect(() => {
     if (!isSequentialMode) {
+      // Define setVideoByTime inside useEffect to access ref with current value
+      // This fixes the stale closure issue - ref always has the latest value
+      const setVideoByTime = () => {
+        const hour = new Date().getHours();
+        let newVideo = '';
+        let newStyle = '';
+        let newGlow = 0;
+        
+        if (hour >= 5 && hour < 10) {
+          newVideo = '/videos/hero-video1.mp4';
+          newStyle = 'bright';
+          newGlow = 0.35;
+        } else if (hour >= 10 && hour < 17) {
+          newVideo = '/videos/hero-video2.mp4';
+          newStyle = 'dark';
+          newGlow = 0.45;
+        } else if (hour >= 17 && hour < 22) {
+          newVideo = '/videos/hero-video3.mp4';
+          newStyle = 'bright';
+          newGlow = 0.65;
+        } else {
+          newVideo = '/videos/hero-video4.mp4';
+          newStyle = 'bright';
+          newGlow = 0.9;
+        }
+        
+        // Use ref to get current value (always up-to-date, no stale closure)
+        if (currentVideoRef.current !== newVideo) {
+          setVideoFade(false);
+          setTimeout(() => {
+            setCurrentVideo(newVideo);
+            setLogoStyle(newStyle);
+            setLogoGlow(newGlow);
+            setVideoFade(true);
+          }, 500); // Half second fade transition
+        }
+      };
+
+      // Call immediately on mount
       setVideoByTime();
-      const timer = setInterval(setVideoByTime, 5 * 60 * 1000); // refresh every 5 minutes
+      // Then refresh every 5 minutes
+      const timer = setInterval(setVideoByTime, 5 * 60 * 1000);
       return () => clearInterval(timer);
     }
   }, [isSequentialMode]);
