@@ -6,11 +6,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +25,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_active',
+        'phone',
+        'avatar',
+        'must_change_password',
+        'password_changed_at',
+        'password_change_count',
     ];
 
     /**
@@ -43,6 +53,24 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
+            'password_changed_at' => 'datetime',
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Only Super Admin can access the admin panel
+        if ($panel->getId() === 'admin') {
+            return $this->hasRole('super_admin');
+        }
+
+        return false;
+    }
+
+    public function properties(): HasMany
+    {
+        return $this->hasMany(Property::class);
     }
 }

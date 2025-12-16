@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -90,9 +90,14 @@ export default function AgentDashboard() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>('listing-1');
   const [isUploading, setIsUploading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const settingsMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [language] = useState('English');
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const formatNumberWithCommas = (value: string) => {
     if (!value) return '';
@@ -211,21 +216,41 @@ export default function AgentDashboard() {
             </div>
             <div className="flex items-center gap-4 relative">
               <div
-                onMouseEnter={() => setShowSettingsMenu(true)}
-                onMouseLeave={() => {
-                  // Delay closing to allow cursor movement
-                  setTimeout(() => setShowSettingsMenu(false), 600);
-                }}
                 className="relative"
+                onMouseEnter={() => {
+                  if (settingsMenuTimeoutRef.current) {
+                    clearTimeout(settingsMenuTimeoutRef.current);
+                    settingsMenuTimeoutRef.current = null;
+                  }
+                  setShowSettingsMenu(true);
+                }}
+                onMouseLeave={() => {
+                  settingsMenuTimeoutRef.current = setTimeout(() => {
+                    setShowSettingsMenu(false);
+                  }, 300);
+                }}
               >
-                <button className="p-2 text-gray-600 hover:text-gray-900 hover:scale-105 transition-all rounded-lg hover:shadow-lg hover:shadow-primary-500/20">
+                <button 
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:scale-105 transition-all rounded-lg hover:shadow-lg hover:shadow-primary-500/20"
+                >
                   <Settings className="w-5 h-5" />
                 </button>
                 {showSettingsMenu && (
                   <div 
                     className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-20"
-                    onMouseEnter={() => setShowSettingsMenu(true)}
-                    onMouseLeave={() => setTimeout(() => setShowSettingsMenu(false), 600)}
+                    onMouseEnter={() => {
+                      if (settingsMenuTimeoutRef.current) {
+                        clearTimeout(settingsMenuTimeoutRef.current);
+                        settingsMenuTimeoutRef.current = null;
+                      }
+                      setShowSettingsMenu(true);
+                    }}
+                    onMouseLeave={() => {
+                      settingsMenuTimeoutRef.current = setTimeout(() => {
+                        setShowSettingsMenu(false);
+                      }, 300);
+                    }}
                   >
                     <div className="px-4 py-2 text-xs text-gray-500 border-b">Quick settings</div>
                     <button className="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 text-gray-900">
@@ -239,32 +264,71 @@ export default function AgentDashboard() {
                       <span className="text-gray-900">Night / Dark mode</span>
                       <SunMoon className="w-4 h-4 text-gray-500" />
                     </button>
-                    <button className="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 text-gray-900">
-                      <span className="text-gray-900">Notifications</span>
-                      <span className="text-gray-500">Manage</span>
+                    <button 
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setShowPasswordModal(true);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 text-gray-900"
+                    >
+                      <span className="text-gray-900">Change Password</span>
                     </button>
                   </div>
                 )}
               </div>
               <div
-                onMouseEnter={() => setShowUserMenu(true)}
-                onMouseLeave={() => {
-                  // Delay closing to allow cursor movement
-                  setTimeout(() => setShowUserMenu(false), 600);
-                }}
                 className="relative"
+                onMouseEnter={() => {
+                  if (userMenuTimeoutRef.current) {
+                    clearTimeout(userMenuTimeoutRef.current);
+                    userMenuTimeoutRef.current = null;
+                  }
+                  setShowUserMenu(true);
+                }}
+                onMouseLeave={() => {
+                  userMenuTimeoutRef.current = setTimeout(() => {
+                    setShowUserMenu(false);
+                  }, 300);
+                }}
               >
-                <button className="p-2 text-gray-600 hover:text-gray-900 hover:scale-105 transition-all rounded-lg hover:shadow-lg hover:shadow-primary-500/20">
-                  <User className="w-5 h-5" />
+                <button 
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:scale-105 transition-all rounded-lg hover:shadow-lg hover:shadow-primary-500/20"
+                >
+                  {selectedAvatar ? (
+                    <div className="w-6 h-6 rounded-full overflow-hidden border border-gray-200">
+                      <img src={selectedAvatar} alt="User" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
                 </button>
                 {showUserMenu && (
                   <div 
                     className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20"
-                    onMouseEnter={() => setShowUserMenu(true)}
-                    onMouseLeave={() => setTimeout(() => setShowUserMenu(false), 600)}
+                    onMouseEnter={() => {
+                      if (userMenuTimeoutRef.current) {
+                        clearTimeout(userMenuTimeoutRef.current);
+                        userMenuTimeoutRef.current = null;
+                      }
+                      setShowUserMenu(true);
+                    }}
+                    onMouseLeave={() => {
+                      userMenuTimeoutRef.current = setTimeout(() => {
+                        setShowUserMenu(false);
+                      }, 300);
+                    }}
                   >
                     <div className="px-4 py-2 text-sm text-gray-800 border-b font-semibold">Agent Profile</div>
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">View Profile</button>
+                    <button 
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setShowProfileModal(true);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      View Profile
+                    </button>
                     <button 
                       onClick={() => {
                         // Clear any local auth state
@@ -883,6 +947,162 @@ export default function AgentDashboard() {
           )}
         </div>
       </div>
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className={`w-full max-w-md p-6 rounded-lg shadow-xl ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowPasswordModal(false); alert('Password updated successfully!'); }}>
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Password</label>
+                <input 
+                  type="password" 
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  placeholder="Enter current password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">New Password</label>
+                <input 
+                  type="password" 
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  placeholder="Confirm new password"
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button 
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+                >
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className={`w-full max-w-lg p-6 rounded-lg shadow-xl ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Agent Profile</h3>
+              <button onClick={() => setShowProfileModal(false)} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowProfileModal(false); alert('Profile updated successfully!'); }}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative group cursor-pointer">
+                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary-500 transition-colors">
+                    {selectedAvatar ? (
+                      <img src={selectedAvatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-10 h-10 text-gray-500" />
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-xs font-medium">Edit</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">Profile Photo</h4>
+                  <div className="flex gap-2 mt-2">
+                    {[5, 6, 7, 8].map((i) => {
+                      const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          className="w-8 h-8 rounded-full bg-gray-100 hover:ring-2 hover:ring-primary-500 transition-all overflow-hidden"
+                          onClick={() => setSelectedAvatar(avatarUrl)}
+                        >
+                          <img 
+                            src={avatarUrl} 
+                            alt={`Avatar ${i}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    defaultValue="Jane Agent"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input 
+                    type="tel" 
+                    defaultValue="+254 722 123 456"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email Address</label>
+                <input 
+                  type="email" 
+                  defaultValue="jane.agent@example.com"
+                  readOnly
+                  className={`w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Agency / Bio</label>
+                <textarea 
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                  placeholder="Tell us about your agency..."
+                ></textarea>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button 
+                  type="button"
+                  onClick={() => setShowProfileModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

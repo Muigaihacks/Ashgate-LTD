@@ -53,12 +53,44 @@ export default function ExpertRegistrationPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission - in production, this would send to backend
-    setTimeout(() => {
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('profession', formData.profession);
+      formDataToSend.append('yearsOfExperience', formData.yearsOfExperience);
+      formDataToSend.append('serialNumber', formData.serialNumber);
+      formDataToSend.append('professionalBoard', formData.professionalBoard);
+      formDataToSend.append('bio', formData.bio);
+      
+      uploadedDocuments.forEach((file) => {
+        formDataToSend.append('documents[]', file);
+      });
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+        },
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        throw new Error('Submission failed');
+      }
+
+      const result = await response.json();
+
       alert('Application submitted successfully! Our team will review your application and verify your credentials. You will be notified once your application is approved.');
-      setIsSubmitting(false);
       router.push('/community');
-    }, 1500);
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      alert('Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -188,6 +220,7 @@ export default function ExpertRegistrationPage() {
                   <option value="interior">Interior Design & Staging</option>
                   <option value="real-estate-agent">Real Estate Agents</option>
                   <option value="property-manager">Property Managers</option>
+                  <option value="property-owner">Property Owner</option>
                   <option value="engineer">Engineer</option>
                   <option value="architect">Architect</option>
                   <option value="surveyor">Quantity Surveyor</option>

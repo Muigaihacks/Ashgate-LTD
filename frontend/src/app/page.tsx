@@ -81,6 +81,138 @@ export default function HomePage() {
   const [videoFade, setVideoFade] = useState(true); // For smooth video transitions
   const [isManuallyScrolling, setIsManuallyScrolling] = useState(false);
   
+  // Auth & Registration States
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Agent Form State
+  const [agentData, setAgentData] = useState({ firstName: '', lastName: '', email: '', phone: '', agency: '', about: '' });
+  const [agentDocs, setAgentDocs] = useState<File[]>([]);
+
+  // Owner Form State
+  const [ownerData, setOwnerData] = useState({ firstName: '', lastName: '', email: '', phone: '', address: '', reason: '', agreeViewing: false });
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(signInData)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setIsUserLoggedIn(true);
+            setUserName(data.user.name);
+            // Derive type from backend roles if possible, or default
+            setUserType('homeowner'); 
+            setIsSignInOpen(false);
+            setSignInData({ email: '', password: '' });
+            if (data.require_password_change) {
+                alert('Please change your password.');
+                // Here you would redirect to change password page or open modal
+            }
+        } else {
+            alert(data.message || 'Login failed');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Login error');
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/forgot-password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ email: forgotPasswordEmail })
+          });
+          const data = await res.json();
+          alert(data.message || 'If an account exists, a reset link has been sent.');
+          setIsForgotPasswordOpen(false);
+      } catch (err) {
+          alert('Error sending reset link');
+      } finally {
+          setIsSubmitting(false);
+      }
+  };
+
+  const handleAgentSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('firstName', agentData.firstName);
+      formData.append('lastName', agentData.lastName);
+      formData.append('email', agentData.email);
+      formData.append('phone', agentData.phone);
+      formData.append('profession', 'real-estate-agent');
+      formData.append('yearsOfExperience', '0'); // Default
+      formData.append('serialNumber', 'PENDING');
+      formData.append('professionalBoard', agentData.agency); // Mapping agency to board field for now
+      formData.append('bio', agentData.about);
+      agentDocs.forEach(file => formData.append('documents[]', file));
+
+      try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications`, {
+              method: 'POST',
+              headers: { 'Accept': 'application/json' },
+              body: formData
+          });
+          if (res.ok) {
+              alert('Application submitted successfully!');
+              setIsAgentOpen(false);
+          } else {
+              const d = await res.json();
+              alert('Submission failed: ' + (d.message || JSON.stringify(d.errors)));
+          }
+      } catch (err) {
+          alert('Error submitting application');
+      } finally {
+          setIsSubmitting(false);
+      }
+  };
+
+  const handleOwnerSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('firstName', ownerData.firstName);
+      formData.append('lastName', ownerData.lastName);
+      formData.append('email', ownerData.email);
+      formData.append('phone', ownerData.phone);
+      formData.append('profession', 'property-owner');
+      formData.append('yearsOfExperience', '0');
+      formData.append('serialNumber', 'N/A');
+      formData.append('professionalBoard', 'N/A');
+      formData.append('bio', `Address: ${ownerData.address}. Reason: ${ownerData.reason}. Agreed to viewing: ${ownerData.agreeViewing}`);
+
+      try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications`, {
+              method: 'POST',
+              headers: { 'Accept': 'application/json' },
+              body: formData
+          });
+          if (res.ok) {
+              alert('Application submitted successfully!');
+              setIsPropertyOwnerOpen(false);
+          } else {
+              const d = await res.json();
+              alert('Submission failed: ' + (d.message || JSON.stringify(d.errors)));
+          }
+      } catch (err) {
+          alert('Error submitting application');
+      } finally {
+          setIsSubmitting(false);
+      }
+  };
+  
   // Ref to track current video for comparison without stale closure
   const currentVideoRef = useRef(currentVideo);
   
@@ -754,14 +886,20 @@ export default function HomePage() {
                           }, 200);
                         }}
                       >
-                        <a href="/community" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                        <button 
+                          onClick={() => router.push('/community')} 
+                          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                        >
                           <Users className="w-4 h-4 mr-2" />
                           Experts
-                        </a>
-                        <a href="/news" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                        </button>
+                        <button 
+                          onClick={() => router.push('/news')} 
+                          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                        >
                           <FileText className="w-4 h-4 mr-2" />
                           News & Insights
-                        </a>
+                        </button>
                 </div>
                     )}
               </div>
@@ -1803,30 +1941,74 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-gray-900">Agent Registration</h2>
               <button className="text-gray-500 hover:text-gray-700" onClick={() => setIsAgentOpen(false)}>✕</button>
             </div>
-            <form className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleAgentSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">First Name</label>
-                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="Jane" />
+                <input 
+                    className="w-full border rounded-lg px-3 py-2 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="Jane" 
+                    value={agentData.firstName}
+                    onChange={(e) => setAgentData({...agentData, firstName: e.target.value})}
+                    required
+                />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Last Name</label>
-                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="Doe" />
+                <input 
+                    className="w-full border rounded-lg px-3 py-2 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="Doe"
+                    value={agentData.lastName}
+                    onChange={(e) => setAgentData({...agentData, lastName: e.target.value})}
+                    required
+                />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Email</label>
-                <input type="email" className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="agent@example.com" />
+                <input 
+                    type="email" 
+                    className="w-full border rounded-lg px-3 py-2 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="agent@example.com"
+                    value={agentData.email}
+                    onChange={(e) => setAgentData({...agentData, email: e.target.value})}
+                    required
+                />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Phone</label>
-                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="+254 7xx xxx xxx" />
+                <input 
+                    className="w-full border rounded-lg px-3 py-2 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="+254 7xx xxx xxx"
+                    value={agentData.phone}
+                    onChange={(e) => setAgentData({...agentData, phone: e.target.value})}
+                    required
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-700 mb-1">Agency / Brokerage</label>
-                <input className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} placeholder="Company name" />
+                <input 
+                    className="w-full border rounded-lg px-3 py-2 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="Company name"
+                    value={agentData.agency}
+                    onChange={(e) => setAgentData({...agentData, agency: e.target.value})}
+                    required
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-700 mb-1">About</label>
-                <textarea className="w-full border rounded-lg px-3 py-2 !text-gray-900" style={{ color: '#111827' }} rows={3} placeholder="Short bio and service areas"></textarea>
+                <textarea 
+                    className="w-full border rounded-lg px-3 py-2 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    rows={3} 
+                    placeholder="Short bio and service areas"
+                    value={agentData.about}
+                    onChange={(e) => setAgentData({...agentData, about: e.target.value})}
+                    required
+                ></textarea>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-700 mb-1">Supporting Documents</label>
@@ -1837,12 +2019,19 @@ export default function HomePage() {
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   className="w-full border rounded-lg px-3 py-2 text-sm !text-gray-900"
                   style={{ color: '#111827' }}
+                  onChange={(e) => e.target.files && setAgentDocs(Array.from(e.target.files))}
                 />
                 <p className="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max 5MB per file)</p>
               </div>
               <div className="md:col-span-2 flex items-center justify-between">
                 <div className="text-sm text-gray-700">Paying homage to <a href="/terms-and-conditions.html" className="underline text-primary-600">Ashgate Limited&apos;s Terms & Conditions</a>, we thoroughly screen every Agent Application to keep Ashgate a secure, fraud‑free environment for our users.</div>
-                <button type="button" className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700">Submit Application</button>
+                <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                </button>
               </div>
             </form>
           </div>
@@ -1857,31 +2046,68 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-gray-900">Property Owner Registration</h2>
               <button className="text-gray-500 hover:text-gray-700" onClick={() => setIsPropertyOwnerOpen(false)}>✕</button>
             </div>
-            <form className="p-6 space-y-4">
+            <form onSubmit={handleOwnerSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="John" required />
+                  <input 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="John" 
+                    value={ownerData.firstName}
+                    onChange={(e) => setOwnerData({...ownerData, firstName: e.target.value})}
+                    required 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="Doe" required />
+                  <input 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="Doe" 
+                    value={ownerData.lastName}
+                    onChange={(e) => setOwnerData({...ownerData, lastName: e.target.value})}
+                    required 
+                  />
                 </div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="owner@example.com" required />
+                <input 
+                    type="email" 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="owner@example.com" 
+                    value={ownerData.email}
+                    onChange={(e) => setOwnerData({...ownerData, email: e.target.value})}
+                    required 
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                <input type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="+254 7xx xxx xxx" required />
+                <input 
+                    type="tel" 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="+254 7xx xxx xxx" 
+                    value={ownerData.phone}
+                    onChange={(e) => setOwnerData({...ownerData, phone: e.target.value})}
+                    required 
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Property Address</label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" style={{ color: '#111827' }} placeholder="Enter property address" required />
+                <input 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900" 
+                    style={{ color: '#111827' }} 
+                    placeholder="Enter property address" 
+                    value={ownerData.address}
+                    onChange={(e) => setOwnerData({...ownerData, address: e.target.value})}
+                    required 
+                />
               </div>
               
               <div>
@@ -1891,6 +2117,8 @@ export default function HomePage() {
                   style={{ color: '#111827' }} 
                   rows={4} 
                   placeholder="Please tell us why you want to sell your property (e.g., mortgage repayment issues, relocation, etc.)"
+                  value={ownerData.reason}
+                  onChange={(e) => setOwnerData({...ownerData, reason: e.target.value})}
                   required
                 />
               </div>
@@ -1901,6 +2129,8 @@ export default function HomePage() {
                     type="checkbox"
                     id="agreeViewing"
                     className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    checked={ownerData.agreeViewing}
+                    onChange={(e) => setOwnerData({...ownerData, agreeViewing: e.target.checked})}
                     required
                   />
                   <label htmlFor="agreeViewing" className="ml-2 text-sm text-gray-700">
@@ -1922,8 +2152,12 @@ export default function HomePage() {
                     Ashgate Limited&apos;s Terms & Conditions
                   </a>
                 </div>
-                <button type="button" className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
-                  Submit Application
+                <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </button>
               </div>
             </form>
@@ -1959,25 +2193,7 @@ export default function HomePage() {
             </div>
             
             <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                // Mock authentication - test credentials
-                const mockUsers = {
-                  'owner@test.com': { password: 'test123', type: 'homeowner' as const, name: 'John Doe' },
-                  'agent@test.com': { password: 'test123', type: 'agent' as const, name: 'Jane Smith' },
-                };
-                
-                const user = mockUsers[signInData.email as keyof typeof mockUsers];
-                if (user && signInData.password === user.password) {
-                  setIsUserLoggedIn(true);
-                  setUserType(user.type);
-                  setUserName(user.name);
-                  setIsSignInOpen(false);
-                  setSignInData({ email: '', password: '' });
-                } else {
-                  alert('Invalid credentials. Use test credentials shown above.');
-                }
-              }}
+              onSubmit={handleSignIn}
               className="p-6 space-y-4"
             >
               <div>
@@ -2017,18 +2233,81 @@ export default function HomePage() {
                   <input type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                   <span className="ml-2 text-sm text-gray-600">Remember me</span>
                 </label>
-                <a href="#" className="text-sm text-primary-600 hover:text-primary-500">
+                <button 
+                  type="button"
+                  onClick={() => { setIsSignInOpen(false); setIsForgotPasswordOpen(true); }}
+                  className="text-sm text-primary-600 hover:text-primary-500"
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
               
               <button
                 type="submit"
-                className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium"
+                disabled={isSubmitting}
+                className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium disabled:opacity-50"
               >
-                Sign In
+                {isSubmitting ? 'Signing In...' : 'Sign In'}
               </button>
               
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {isForgotPasswordOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Reset Password</h2>
+              <button
+                onClick={() => setIsForgotPasswordOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleForgotPassword} className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Enter your email address and we&apos;ll send you a link to reset your password.
+              </p>
+              
+              <div>
+                <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  id="forgot-email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent !text-gray-900"
+                  style={{ color: '#111827' }}
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                    type="button"
+                    onClick={() => { setIsForgotPasswordOpen(false); setIsSignInOpen(true); }}
+                    className="flex-1 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-medium"
+                >
+                    Back to Sign In
+                </button>
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium disabled:opacity-50"
+                >
+                    {isSubmitting ? 'Sending...' : 'Send Link'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

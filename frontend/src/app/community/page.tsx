@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users, Hammer, Sun, Trees, Gavel, Truck, Camera, Paintbrush, Search, ArrowLeft, Newspaper } from 'lucide-react';
 
 const categories = [
@@ -26,6 +27,7 @@ const experts = [
 ];
 
 export default function CommunityPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<string>('');
   const [query, setQuery] = useState('');
 
@@ -44,9 +46,7 @@ export default function CommunityPage() {
           <p className="text-gray-700 mt-2">Vetted professionals you can trust at every step of your property journey.</p>
           <div className="mt-6">
             <button 
-              onClick={() => {
-                window.location.href = '/experts/register';
-              }}
+              onClick={() => router.push('/experts/register')}
               className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
             >
               <Users className="w-5 h-5" />
