@@ -16,6 +16,8 @@ class PartnerResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
     protected static ?string $navigationGroup = 'Content Management';
+    protected static ?string $navigationLabel = 'Partner Brands';
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {

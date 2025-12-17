@@ -6,7 +6,8 @@ return [
         'slug' => 'shield/roles',
         'navigation_sort' => -1,
         'navigation_badge' => true,
-        'navigation_group' => true,
+        // Put Roles & Permissions under the same group as Users.
+        'navigation_group' => 'Security & Access',
         'sub_navigation_position' => null,
         'is_globally_searchable' => false,
         'show_model_path' => true,

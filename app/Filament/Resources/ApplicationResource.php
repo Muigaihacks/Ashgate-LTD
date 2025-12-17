@@ -26,6 +26,7 @@ class ApplicationResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-check';
     protected static ?string $navigationGroup = 'Verification Management';
     protected static ?string $navigationLabel = 'Applications';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -77,6 +78,7 @@ class ApplicationResource extends Resource
                             ->directory('application-documents')
                             ->openable()
                             ->downloadable()
+                            ->disabled() // Admin should view downloads here, not re-upload/modify applicant files
                             ->dehydrated(false) // Prevent re-uploading or modifying during simple view/edit
                             ->columnSpanFull(),
                     ]),

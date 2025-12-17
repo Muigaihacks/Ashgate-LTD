@@ -17,6 +17,7 @@ class ExpertProfileResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?string $navigationGroup = 'Content Management';
     protected static ?string $navigationLabel = 'Expert Profiles';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {

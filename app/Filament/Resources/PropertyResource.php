@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PropertyResource extends Resource
 {
@@ -19,6 +20,12 @@ class PropertyResource extends Resource
     protected static ?string $navigationLabel = 'Ashgate Portfolio';
     protected static ?string $modelLabel = 'Ashgate Property';
     protected static ?int $navigationSort = 1;
+
+    public static function getEloquentQuery(): Builder
+    {
+        // Ashgate Portfolio should only show Ashgate-owned listings (not user/agent listings).
+        return parent::getEloquentQuery()->whereNull('user_id');
+    }
 
     public static function form(Form $form): Form
     {

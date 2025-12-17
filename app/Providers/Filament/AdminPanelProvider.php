@@ -6,6 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -28,6 +29,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // Prevent render-blocking external font loads (fonts.bunny.net) which can cause
+            // Safari to appear "stuck" on a blank white screen if the request hangs/gets blocked.
+            ->font('system-ui', provider: LocalFontProvider::class)
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -39,7 +43,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                // Core dashboard widgets
+                \App\Filament\Widgets\StatsOverview::class,
+                \App\Filament\Widgets\PendingApplications::class,
+                \App\Filament\Widgets\RecentActivity::class,
+                \App\Filament\Widgets\PropertyPerformanceChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,
