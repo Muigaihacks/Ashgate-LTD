@@ -44,10 +44,12 @@ class ActivityLogResource extends Resource
                             ->schema([
                                 Forms\Components\KeyValue::make('properties.attributes')
                                     ->label('New Values')
-                                    ->readOnly(),
+                                    ->disabled()
+                                    ->dehydrated(false),
                                 Forms\Components\KeyValue::make('properties.old')
                                     ->label('Old Values')
-                                    ->readOnly()
+                                    ->disabled()
+                                    ->dehydrated(false)
                                     ->visible(fn ($record) => isset($record->properties['old'])),
                             ]),
                     ])->columnSpan(['lg' => 2]),

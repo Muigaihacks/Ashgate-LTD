@@ -75,6 +75,7 @@ class ApplicationResource extends Resource
 
                         Forms\Components\FileUpload::make('documents')
                             ->multiple()
+                            ->disk('public')
                             ->directory('application-documents')
                             ->openable()
                             ->downloadable()
