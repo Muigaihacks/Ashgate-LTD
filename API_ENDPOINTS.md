@@ -428,13 +428,27 @@ const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/application
 
 | Method | Endpoint | Auth | Purpose | Used In |
 |--------|----------|------|---------|---------|
+| **Authentication** |
 | `POST` | `/api/login` | ❌ | User login | `page.tsx` (Sign In modal) |
 | `POST` | `/api/logout` | ✅ | User logout | Dashboard (not yet implemented) |
 | `POST` | `/api/change-password` | ✅ | Change password | `dashboard/homeowner/page.tsx`, `dashboard/agent/page.tsx` |
 | `POST` | `/api/forgot-password` | ❌ | Request reset link | `page.tsx` (Forgot Password modal) |
 | `POST` | `/api/reset-password` | ❌ | Reset password | `reset-password/page.tsx` |
-| `POST` | `/api/applications` | ❌ | Submit application | `page.tsx` (Agent/Owner forms), `experts/register/page.tsx` |
 | `GET` | `/api/user` | ✅ | Get current user | Available but not used yet |
+| **Applications** |
+| `POST` | `/api/applications` | ❌ | Submit application | `page.tsx` (Agent/Owner forms), `experts/register/page.tsx` |
+| **Properties** |
+| `GET` | `/api/properties` | ❌ | List properties | Available for frontend integration |
+| `POST` | `/api/properties` | ✅ | Create property | Available for dashboard integration |
+| `GET` | `/api/properties/{id}` | ❌ | Get property details | Available for frontend integration |
+| `PUT` | `/api/properties/{id}` | ✅ | Update property | Available for dashboard integration |
+| `DELETE` | `/api/properties/{id}` | ✅ | Delete property | Available for dashboard integration |
+| **Dashboard** |
+| `GET` | `/api/dashboard/stats` | ✅ | Dashboard statistics | Available for dashboard integration |
+| `GET` | `/api/dashboard/properties` | ✅ | User's properties | Available for dashboard integration |
+| **Experts** |
+| `GET` | `/api/experts` | ❌ | List expert profiles | Available for frontend integration |
+| `GET` | `/api/experts/{id}` | ❌ | Get expert details | Available for frontend integration |
 
 ---
 
@@ -478,25 +492,360 @@ const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/application
 
 ---
 
+## 🏠 Property Endpoints
+
+### 8. List Properties
+**Endpoint:** `GET /api/properties`  
+**Authentication:** None (Public - shows active properties)  
+**Description:** Get paginated list of properties with filtering options
+
+**Query Parameters:**
+- `listing_type` (optional) - Filter by `sale` or `rent`
+- `status` (optional) - Filter by `available`, `taken`, or `pending`
+- `min_price` (optional) - Minimum price filter
+- `max_price` (optional) - Maximum price filter
+- `search` (optional) - Search in title, description, or location
+- `per_page` (optional) - Items per page (default: 15)
+
+**Success Response (200):**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Modern 3BR Apartment",
+      "description": "...",
+      "listing_type": "sale",
+      "price": "18500000",
+      "currency": "KSh",
+      "location_text": "Westlands, Nairobi",
+      "latitude": -1.268,
+      "longitude": 36.811,
+      "beds": 3,
+      "baths": 2,
+      "parking_spaces": 1,
+      "area_sqm": 145,
+      "year_built": 2019,
+      "status": "available",
+      "is_active": true,
+      "images": [...],
+      "amenities": [...],
+      "user": {...}
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "last_page": 5,
+    "per_page": 15,
+    "total": 72
+  }
+}
+```
+
+**Note:** Authenticated users can see their own properties (including inactive) in addition to public active properties.
+
+---
+
+### 9. Create Property
+**Endpoint:** `POST /api/properties`  
+**Authentication:** Required (`auth:sanctum`)  
+**Description:** Create a new property listing
+
+**Request Body (FormData or JSON):**
+```json
+{
+  "title": "Modern 3BR Apartment",
+  "description": "Spacious apartment with modern amenities",
+  "listing_type": "sale",
+  "price": 18500000,
+  "currency": "KSh",
+  "location_text": "Westlands, Nairobi",
+  "latitude": -1.268,
+  "longitude": 36.811,
+  "beds": 3,
+  "baths": 2,
+  "parking_spaces": 1,
+  "area_sqm": 145,
+  "year_built": 2019,
+  "has_3d_tour": false,
+  "has_floor_plan": true,
+  "status": "available",
+  "is_active": true,
+  "amenities": [1, 2, 3],
+  "photos": [File, File, ...],
+  "videos": [File, File, ...]
+}
+```
+
+**Success Response (201):**
+```json
+{
+  "message": "Property created successfully",
+  "data": {
+    "id": 1,
+    "title": "Modern 3BR Apartment",
+    ...
+  }
+}
+```
+
+**File Uploads:**
+- `photos`: Array of image files (max 5MB each)
+- `videos`: Array of video files (max 50MB each, formats: mp4, mov, avi)
+- Images are stored in `storage/app/public/property-images/`
+
+---
+
+### 10. Get Property Details
+**Endpoint:** `GET /api/properties/{id}`  
+**Authentication:** None (Public - active properties only)  
+**Description:** Get detailed information about a specific property
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "id": 1,
+    "title": "Modern 3BR Apartment",
+    "description": "...",
+    "listing_type": "sale",
+    "price": "18500000",
+    "view_count": 42,
+    "images": [...],
+    "amenities": [...],
+    "user": {...}
+  }
+}
+```
+
+**Note:** View count is automatically incremented on access. Only active properties are visible to non-owners.
+
+---
+
+### 11. Update Property
+**Endpoint:** `PUT /api/properties/{id}`  
+**Authentication:** Required (`auth:sanctum`) - Listing owner only  
+**Description:** Update an existing property. Only the user who created the listing (property owner or agent) can update it.
+
+**Request Body (FormData or JSON):**
+```json
+{
+  "title": "Updated Title",
+  "price": 19000000,
+  "status": "taken",
+  "amenities": [1, 2, 3, 4],
+  "photos": [File, File, ...]
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "message": "Property updated successfully",
+  "data": {...}
+}
+```
+
+**Error Response (403):**
+```json
+{
+  "message": "Unauthorized to update this property"
+}
+```
+
+**Note:** Only the user who created the listing (property owner or agent) can update it. New photos are appended to existing ones.
+
+---
+
+### 12. Delete Property
+**Endpoint:** `DELETE /api/properties/{id}`  
+**Authentication:** Required (`auth:sanctum`) - Listing owner only  
+**Description:** Soft delete a property (and associated images). Only the user who created the listing (property owner or agent) can delete it.
+
+**Success Response (200):**
+```json
+{
+  "message": "Property deleted successfully"
+}
+```
+
+**Error Response (403):**
+```json
+{
+  "message": "Unauthorized to delete this property"
+}
+```
+
+**Note:** Performs soft delete. Associated images are deleted from storage. Both property owners and agents can delete their own listings.
+
+---
+
+## 📊 Dashboard Endpoints
+
+### 13. Get Dashboard Statistics
+**Endpoint:** `GET /api/dashboard/stats`  
+**Authentication:** Required (`auth:sanctum`)  
+**Description:** Get statistics and metrics for the authenticated user's dashboard
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "properties": {
+      "total": 12,
+      "active": 10,
+      "sale": 6,
+      "rent": 4
+    },
+    "status": {
+      "available": 7,
+      "taken": 2,
+      "pending": 1
+    },
+    "metrics": {
+      "total_views": 245,
+      "average_price": 12500000
+    },
+    "recent_properties": [
+      {
+        "id": 12,
+        "title": "Property Title",
+        "listing_type": "sale",
+        "price": "15000000",
+        "status": "available",
+        "updated_at": "2024-12-20T10:30:00.000000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 14. Get User Properties
+**Endpoint:** `GET /api/dashboard/properties`  
+**Authentication:** Required (`auth:sanctum`)  
+**Description:** Get paginated list of authenticated user's properties
+
+**Query Parameters:**
+- `listing_type` (optional) - Filter by `sale` or `rent`
+- `status` (optional) - Filter by `available`, `taken`, or `pending`
+- `is_active` (optional) - Filter by active status (`true`/`false`)
+- `search` (optional) - Search in title, description, or location
+- `sort_by` (optional) - Sort field (default: `updated_at`)
+- `sort_order` (optional) - Sort direction `asc` or `desc` (default: `desc`)
+- `per_page` (optional) - Items per page (default: 15)
+
+**Success Response (200):**
+```json
+{
+  "data": [...],
+  "pagination": {...}
+}
+```
+
+**Note:** Returns all user's properties (active and inactive).
+
+---
+
+**Note:** To create a property from the dashboard, use `POST /api/properties` endpoint.
+
+---
+
+## 👥 Expert Profile Endpoints
+
+### 16. List Expert Profiles
+**Endpoint:** `GET /api/experts`  
+**Authentication:** None (Public)  
+**Description:** Get paginated list of active and verified expert profiles
+
+**Query Parameters:**
+- `category_id` (optional) - Filter by category ID
+- `category_slug` (optional) - Filter by category slug
+- `location` (optional) - Filter by location (partial match)
+- `min_rating` (optional) - Minimum rating (0.00 to 5.00)
+- `search` (optional) - Search in name, tagline, or description
+- `sort_by` (optional) - Sort field: `rating`, `review_count`, `years_of_experience`, `name`, `created_at` (default: `rating`)
+- `sort_order` (optional) - Sort direction `asc` or `desc` (default: `desc`)
+- `per_page` (optional) - Items per page (default: 15)
+
+**Success Response (200):**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "tagline": "Expert Real Estate Consultant",
+      "description": "...",
+      "location": "Nairobi, Kenya",
+      "rating": 4.85,
+      "review_count": 23,
+      "email": "john@example.com",
+      "phone": "+254700000000",
+      "website": "https://johndoe.com",
+      "logo": "path/to/logo.jpg",
+      "is_verified": true,
+      "is_active": true,
+      "registration_number": "REG123456",
+      "professional_board": "Real Estate Board",
+      "years_of_experience": 10,
+      "category": {...},
+      "user": {...}
+    }
+  ],
+  "pagination": {...}
+}
+```
+
+**Note:** Only shows active and verified experts.
+
+---
+
+### 17. Get Expert Profile Details
+**Endpoint:** `GET /api/experts/{id}`  
+**Authentication:** None (Public)  
+**Description:** Get detailed information about a specific expert profile
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "tagline": "Expert Real Estate Consultant",
+    "description": "...",
+    "location": "Nairobi, Kenya",
+    "rating": 4.85,
+    "review_count": 23,
+    "category": {...},
+    "user": {...}
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "message": "No query results for model [App\\Models\\ExpertProfile] {id}"
+}
+```
+
+**Note:** Only active and verified experts are accessible.
+
+---
+
 ## 🚀 Future API Endpoints (Not Yet Implemented)
 
 These endpoints are planned but not yet created:
 
-### Properties
-- `GET /api/properties` - List properties
-- `POST /api/properties` - Create property
-- `GET /api/properties/{id}` - Get property details
-- `PUT /api/properties/{id}` - Update property
-- `DELETE /api/properties/{id}` - Delete property
-
-### User Dashboard
-- `GET /api/dashboard/stats` - Dashboard statistics
-- `GET /api/dashboard/properties` - User's properties
-- `POST /api/dashboard/properties` - Create property from dashboard
-
-### Expert Profiles
-- `GET /api/experts` - List expert profiles
-- `GET /api/experts/{id}` - Get expert details
+### Additional Features
+- `POST /api/properties/{id}/images` - Add images to existing property
+- `DELETE /api/properties/{id}/images/{imageId}` - Delete specific property image
+- `GET /api/amenities` - List available amenities
+- `GET /api/expert-categories` - List expert categories
+- `PUT /api/dashboard/profile` - Update user profile
+- `GET /api/dashboard/analytics` - Advanced analytics and reporting
 
 ---
 
@@ -537,5 +886,6 @@ These endpoints are planned but not yet created:
 ---
 
 **Last Updated:** December 2024  
-**API Version:** 1.0
+**API Version:** 1.1  
+**Changelog v1.1:** Added Property CRUD, Dashboard Statistics, and Expert Profile endpoints
 
