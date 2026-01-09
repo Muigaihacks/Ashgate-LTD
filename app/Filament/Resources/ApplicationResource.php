@@ -14,6 +14,8 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use App\Mail\WelcomeCredentials;
 use App\Mail\ExpertApplicationApproved;
 use App\Models\ExpertProfile;
@@ -219,14 +221,14 @@ class ApplicationResource extends Resource
                             return;
                         }
 
-                        // 3. Create User Account
-                        $password = Str::random(10); // Generate random password
+                        // 3. Create User Account (with temporary password that will be changed)
+                        $tempPassword = Str::random(16); // Temporary password, user will set their own
                         
                         $user = User::create([
                             'name' => $record->name,
                             'email' => $record->email,
                             'phone' => $record->phone,
-                            'password' => Hash::make($password), 
+                            'password' => Hash::make($tempPassword), 
                             'is_active' => true,
                             'must_change_password' => true, // Force password change
                             'email_verified_at' => now(),
@@ -242,19 +244,22 @@ class ApplicationResource extends Resource
                         
                         $user->assignRole($roleName);
 
-                        // 5. Send Welcome Email
+                        // 5. Generate password setup token (using Laravel's password reset system)
+                        $token = Password::createToken($user);
+
+                        // 6. Send Welcome Email with password setup link
                         try {
-                            Mail::to($user)->send(new WelcomeCredentials($user, $password));
+                            Mail::to($user)->send(new WelcomeCredentials($user, $token));
                             
                             Notification::make()
-                                ->title('Application Approved & Credentials Sent')
-                                ->body("User account created and welcome email sent to {$user->email}.")
+                                ->title('Application Approved & Password Setup Email Sent')
+                                ->body("User account created and password setup email sent to {$user->email}.")
                                 ->success()
                                 ->send();
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Account Created but Email Failed')
-                                ->body("User created but email failed: {$e->getMessage()}. Temp Password: {$password}")
+                                ->body("User created but email failed: {$e->getMessage()}")
                                 ->warning()
                                 ->persistent()
                                 ->send();

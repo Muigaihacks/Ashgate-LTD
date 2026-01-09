@@ -18,6 +18,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
+// Password setup routes (for new users)
+Route::post('/validate-password-token', [AuthController::class, 'validatePasswordToken']);
+Route::post('/set-password', [AuthController::class, 'setPassword']);
+
 // Public property routes (read-only for listings)
 Route::get('/properties', [PropertyController::class, 'index']);
 Route::get('/properties/{id}', [PropertyController::class, 'show']);

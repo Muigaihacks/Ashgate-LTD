@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
@@ -129,5 +130,89 @@ class AuthController extends Controller
     {
         Auth::guard('web')->logout();
         return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    /**
+     * Validate password setup token
+     */
+    public function validatePasswordToken(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['valid' => false, 'message' => 'User not found'], 404);
+        }
+
+        // Check if a token record exists for this email
+        // Note: We do a basic check here. Full token validation happens in setPassword via Password::reset()
+        // Laravel stores tokens hashed, so we verify by attempting to get the broker and check token existence
+        $tokenRecord = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$tokenRecord) {
+            return response()->json(['valid' => false, 'message' => 'No password setup link found for this email'], 422);
+        }
+
+        // Check if token is not expired (default is 60 minutes)
+        $tokenExpiryMinutes = config('auth.passwords.users.expire', 60);
+        $expiresAt = now()->subMinutes($tokenExpiryMinutes);
+        
+        if ($tokenRecord->created_at < $expiresAt) {
+            return response()->json(['valid' => false, 'message' => 'This link has expired. Please request a new one.'], 422);
+        }
+
+        // Token exists and is not expired
+        // Full token validation will happen in setPassword method
+        return response()->json([
+            'valid' => true,
+            'message' => 'Token is valid',
+            'email' => $user->email,
+            'name' => $user->name,
+        ]);
+    }
+
+    /**
+     * Set password using token (for new users setting up their password)
+     */
+    public function setPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'must_change_password' => false, // Password is now set, no need to change
+                    'password_changed_at' => now(),
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Password set successfully. You can now log in.',
+            ]);
+        }
+
+        return response()->json([
+            'message' => $status === Password::INVALID_TOKEN 
+                ? 'Invalid or expired token' 
+                : 'Unable to set password. Please request a new link.',
+        ], 422);
     }
 }

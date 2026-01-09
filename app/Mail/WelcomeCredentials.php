@@ -19,7 +19,7 @@ class WelcomeCredentials extends Mailable
      */
     public function __construct(
         public User $user,
-        public string $password,
+        public string $token,
     ) {}
 
     /**
@@ -39,6 +39,9 @@ class WelcomeCredentials extends Mailable
     {
         return new Content(
             view: 'emails.welcome-credentials',
+            with: [
+                'frontendUrl' => env('APP_FRONTEND_URL', 'http://localhost:3000'),
+            ],
         );
     }
 

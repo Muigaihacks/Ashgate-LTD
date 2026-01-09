@@ -1,13 +1,13 @@
 {
 	"folders": [
 		{
-			"path": "../../../Tyrese-PWA"
-		},
-		{
 			"path": "../../../tyrese-portfolio"
 		},
 		{
 			"path": "../.."
+		},
+		{
+			"path": "../../../../../Tyrese-2.0"
 		}
 	],
 	"settings": {}
