@@ -164,6 +164,56 @@ export default function HomeownerDashboard() {
       } catch (error) {
         console.error('Error fetching application:', error);
       }
+      
+      // Fetch user's existing properties
+      try {
+        const token = localStorage.getItem('ashgate_auth_token');
+        const propertiesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/properties`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        });
+        if (propertiesResponse.ok) {
+          const propertiesData = await propertiesResponse.json();
+          // Transform API properties to match local state format
+          const transformedProperties = (propertiesData.data || []).map((p: any) => ({
+            id: `property-${p.id}`,
+            address: p.title,
+            status: p.status === 'available' ? 'Available' : p.status === 'taken' ? 'Taken' : 'Available',
+            listingType: p.listing_type,
+            location: p.location_text,
+            lat: p.latitude?.toString() || '',
+            lng: p.longitude?.toString() || '',
+            propertyType: p.property_type,
+            price: new Intl.NumberFormat('en-US').format(p.price),
+            description: p.description || '',
+            beds: { value: (p.beds || 0).toString(), na: !p.beds },
+            baths: { value: (p.baths || 0).toString(), na: !p.baths },
+            parking: { value: (p.parking_spaces || 0).toString(), na: !p.parking_spaces },
+            area: { value: (p.area_sqm || 0).toString(), na: !p.area_sqm },
+            photos: p.images && p.images.length > 0 
+              ? p.images.map((img: any) => img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${img.url}`)
+              : [],
+            videos: [],
+            amenities: {
+              wifi: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('wifi') || a.name?.toLowerCase().includes('wi-fi')) || false,
+              washingMachine: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('washing')) || false,
+              backupPower: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('backup') || a.name?.toLowerCase().includes('power')) || false,
+              security: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('security')) || false,
+              gym: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('gym')) || false,
+              pool: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('pool')) || false,
+              dishwasher: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('dishwasher')) || false,
+            }
+          }));
+          if (transformedProperties.length > 0) {
+            setProperties(transformedProperties);
+            setSelectedPropertyId(transformedProperties[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+      }
     };
     
     fetchUserData();
@@ -400,8 +450,59 @@ export default function HomeownerDashboard() {
       const data = await response.json();
       if (response.ok) {
         alert('Listing saved successfully! It will appear on the listings page shortly.');
-        // Just close the details form, keep the property in the list for editing
-        setSelectedPropertyId(null);
+        
+        // Refresh properties list from API
+        try {
+          const token = localStorage.getItem('ashgate_auth_token');
+          const propertiesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/properties`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json',
+            },
+          });
+          if (propertiesResponse.ok) {
+            const propertiesData = await propertiesResponse.json();
+            const transformedProperties = (propertiesData.data || []).map((p: any) => ({
+              id: `property-${p.id}`,
+              address: p.title,
+              status: p.status === 'available' ? 'Available' : p.status === 'taken' ? 'Taken' : 'Available',
+              listingType: p.listing_type,
+              location: p.location_text,
+              lat: p.latitude?.toString() || '',
+              lng: p.longitude?.toString() || '',
+              propertyType: p.property_type,
+              price: new Intl.NumberFormat('en-US').format(p.price),
+              description: p.description || '',
+              beds: { value: (p.beds || 0).toString(), na: !p.beds },
+              baths: { value: (p.baths || 0).toString(), na: !p.baths },
+              parking: { value: (p.parking_spaces || 0).toString(), na: !p.parking_spaces },
+              area: { value: (p.area_sqm || 0).toString(), na: !p.area_sqm },
+              photos: p.images && p.images.length > 0 
+                ? p.images.map((img: any) => img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${img.url}`)
+                : [],
+              videos: [],
+              amenities: {
+                wifi: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('wifi') || a.name?.toLowerCase().includes('wi-fi')) || false,
+                washingMachine: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('washing')) || false,
+                backupPower: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('backup') || a.name?.toLowerCase().includes('power')) || false,
+                security: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('security')) || false,
+                gym: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('gym')) || false,
+                pool: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('pool')) || false,
+                dishwasher: p.amenities?.some((a: any) => a.name?.toLowerCase().includes('dishwasher')) || false,
+              }
+            }));
+            setProperties(transformedProperties);
+            // Select the newly saved property
+            const savedProperty = transformedProperties.find((p: any) => p.id === `property-${data.data?.id}`);
+            if (savedProperty) {
+              setSelectedPropertyId(savedProperty.id);
+            } else {
+              setSelectedPropertyId(null);
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing properties:', error);
+        }
       } else {
         alert('Failed to save listing: ' + (data.message || 'Unknown error'));
       }

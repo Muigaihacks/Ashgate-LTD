@@ -1,43 +1,43 @@
 # Email SMTP Configuration Fix
 
 ## Issue
-The error "Username and Password not accepted" occurs when trying to send emails via Gmail SMTP.
+The error "Username and Password not accepted" occurs when trying to send emails via SMTP.
 
 ## Solution
 
-### For Gmail SMTP (info@ashgate.co.ke):
+### For Outlook/Microsoft 365 (info@ashgate.co.ke):
 
-**Important:** You need to use the **info@ashgate.co.ke Gmail account** (or whatever email account you're using for Ashgate) to generate the app password.
+**Important:** Since info@ashgate.co.ke is an Outlook account, use Microsoft 365 SMTP settings.
 
-1. **Enable 2-Step Verification** on the info@ashgate.co.ke Google account (if not already enabled)
-   - Go to: https://myaccount.google.com/security
+1. **Get your Outlook/Microsoft 365 password**
+   - Use the password for the info@ashgate.co.ke Outlook account
+   - If you have 2FA enabled, you may need to create an App Password (see below)
+
+2. **For accounts with 2FA enabled, create an App Password:**
+   - Go to: https://account.microsoft.com/security
    - Sign in with info@ashgate.co.ke
-   - Enable 2-Step Verification
-
-2. **Generate an App Password** (required for Gmail SMTP)
-   - Go to: https://myaccount.google.com/apppasswords
-   - Make sure you're signed in with **info@ashgate.co.ke** (not your personal account)
-   - Select "Mail" and "Other (Custom name)"
-   - Enter "Ashgate Laravel" as the name
-   - Copy the 16-character app password generated
+   - Go to "Security" → "Advanced security options"
+   - Under "App passwords", create a new app password
+   - Copy the generated password
 
 3. **Update your `.env` file** with the following:
 
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
+MAIL_HOST=smtp.office365.com
 MAIL_PORT=587
 MAIL_USERNAME=info@ashgate.co.ke
-MAIL_PASSWORD=your-16-character-app-password-here
+MAIL_PASSWORD=your-outlook-password-or-app-password
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=info@ashgate.co.ke
 MAIL_FROM_NAME="Ashgate Limited"
 ```
 
 **Important:** 
-- Use the **App Password** (16 characters) in `MAIL_PASSWORD`, NOT your regular Gmail password
-- The App Password will look like: `abcd efgh ijkl mnop` (remove spaces when adding to .env)
-- Make sure you're generating the app password for the **info@ashgate.co.ke account**, not your personal account
+- Use `smtp.office365.com` as the host (not smtp.gmail.com)
+- Port should be `587` with `tls` encryption
+- If 2FA is enabled, use the App Password instead of your regular password
+- Make sure the account has permission to send emails
 
 ### Alternative: Use a Different Email Service
 
