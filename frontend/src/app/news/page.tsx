@@ -14,13 +14,11 @@ export default function NewsPage() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        // TODO: Add news API endpoint when ready
-        // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/news`);
-        // if (response.ok) {
-        //   const data = await response.json();
-        //   setArticlesList(data.data || []);
-        // }
-        setArticlesList([]); // Empty for now - will be populated from admin panel
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/news`);
+        if (response.ok) {
+          const data = await response.json();
+          setArticlesList(data.data || []);
+        }
       } catch (error) {
         console.error('Error fetching articles:', error);
       }
@@ -67,11 +65,18 @@ export default function NewsPage() {
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-blue-700 shadow-sm">
                   {a.category}
                 </div>
-                {/* Placeholder pattern for image */}
-                <div className="absolute inset-0 opacity-10" style={{
-                  backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
-                  backgroundSize: '20px 20px'
-                }}></div>
+                {a.featured_image ? (
+                  <img 
+                    src={a.featured_image} 
+                    alt={a.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 opacity-10" style={{
+                    backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
+                    backgroundSize: '20px 20px'
+                  }}></div>
+                )}
               </div>
               
               <div className="p-6 flex-1 flex flex-col">

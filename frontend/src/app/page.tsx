@@ -665,8 +665,8 @@ export default function HomePage() {
     };
   }, [isListingsHover, isManuallyScrolling]);
 
-  // Testimonials data with social media links
-  const testimonials = [
+  // Mock testimonials (keep these until we have real ones)
+  const mockTestimonials = [
     {
       id: 1,
       initials: 'SM',
@@ -674,7 +674,7 @@ export default function HomePage() {
       title: 'Property Owner, Nairobi',
       text: 'Ashgate helped me find the perfect apartment in Westlands within my budget. Their property management service is exceptional - rent collection is automated and maintenance requests are handled promptly.',
       rating: 5,
-      socialMedia: 'https://twitter.com/sarahmwangi', // Placeholder - update with actual links
+      socialMedia: 'https://twitter.com/sarahmwangi',
       platform: 'Twitter'
     },
     {
@@ -684,7 +684,7 @@ export default function HomePage() {
       title: 'Land Developer, Nakuru',
       text: 'The land development advisory service was a game-changer. Ashgate connected me with the right quantity surveyor and helped me navigate all the regulatory requirements. My project is now profitable!',
       rating: 5,
-      socialMedia: 'https://linkedin.com/in/jameskiprop', // Placeholder - update with actual links
+      socialMedia: 'https://linkedin.com/in/jameskiprop',
       platform: 'LinkedIn'
     },
     {
@@ -694,7 +694,7 @@ export default function HomePage() {
       title: 'Expatriate, Kampala',
       text: 'As an expatriate relocating to Uganda, Ashgate\'s specialized service was invaluable. They found me a fully furnished home and connected me with interior designers. The transition was seamless!',
       rating: 5,
-      socialMedia: 'https://facebook.com/aishaochieng', // Placeholder - update with actual links
+      socialMedia: 'https://facebook.com/aishaochieng',
       platform: 'Facebook'
     },
     {
@@ -704,7 +704,7 @@ export default function HomePage() {
       title: 'Investor, Mombasa',
       text: 'The carbon credits integration feature is brilliant! I can track my property\'s environmental impact and get certified as a green building. It\'s the future of real estate.',
       rating: 5,
-      socialMedia: 'https://twitter.com/davidnjoroge', // Placeholder - update with actual links
+      socialMedia: 'https://twitter.com/davidnjoroge',
       platform: 'Twitter'
     },
     {
@@ -714,7 +714,7 @@ export default function HomePage() {
       title: 'Landlord, Kisumu',
       text: 'Managing multiple properties was a nightmare until I found Ashgate. Their integrated payment system with M-Pesa makes rent collection effortless, and the maintenance tracking is top-notch.',
       rating: 5,
-      socialMedia: 'https://linkedin.com/in/lindamwangi', // Placeholder - update with actual links
+      socialMedia: 'https://linkedin.com/in/lindamwangi',
       platform: 'LinkedIn'
     },
     {
@@ -724,10 +724,31 @@ export default function HomePage() {
       title: 'Business Owner, Dar es Salaam',
       text: 'The expert network is incredible! When I needed a solar installer, Ashgate connected me with a verified professional who completed the job perfectly. The platform truly delivers on its promises.',
       rating: 5,
-      socialMedia: 'https://facebook.com/roberttembo', // Placeholder - update with actual links
+      socialMedia: 'https://facebook.com/roberttembo',
       platform: 'Facebook'
     },
   ];
+
+  // Real testimonials from API
+  const [realTestimonials, setRealTestimonials] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/testimonials`);
+        if (response.ok) {
+          const data = await response.json();
+          setRealTestimonials(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching testimonials:', error);
+      }
+    };
+    fetchTestimonials();
+  }, []);
+
+  // Combine mock and real testimonials (real ones take priority, then fill with mock)
+  const testimonials = [...realTestimonials, ...mockTestimonials];
 
   // Testimonials carousel - continuous smooth scrolling with pause on hover
   const testimonialsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -1020,7 +1041,7 @@ export default function HomePage() {
                             }
                             
                             // Navigate to dashboard
-                            window.location.href = dashboardPath;
+                            router.push(dashboardPath);
                           } else {
                             router.push('/?login=true');
                           }
@@ -1201,7 +1222,7 @@ export default function HomePage() {
                     />
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     {showCategoryDropdown && (
-                      <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                      <div className="absolute z-[99999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-auto" style={{ position: 'absolute', zIndex: 99999 }}>
                         <button
                           onClick={() => {
                             setSearchCategory('');
@@ -1271,11 +1292,11 @@ export default function HomePage() {
             </div>
 
             {/* Property Types */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-0">
               {propertyTypes.map((type, index) => (
                 <div 
                   key={index} 
-                  className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white border-opacity-30 hover:border-primary-300 group"
+                  className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white border-opacity-30 hover:border-primary-300 group relative z-0"
                 >
                   <div className="text-primary-600 mb-3 group-hover:text-primary-700 transition-colors duration-200">
                     {type.icon}
@@ -1630,12 +1651,7 @@ export default function HomePage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center">
-            {/* Partner logos will be added via admin panel */}
-            <p className="col-span-full text-center text-gray-500 italic">
-              Our trusted partners will be displayed here. Partners are managed through the admin panel.
-            </p>
-          </div>
+          <PartnersGrid />
         </div>
       </section>
 
@@ -1989,7 +2005,7 @@ export default function HomePage() {
                         href={`mailto:${selectedListing.contact_email}`}
                         className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700 transition-colors"
                       >
-                        <Mail className="w-4 h-4" />
+                      <Mail className="w-4 h-4" />
                         {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Email Owner' : selectedListing.broker === 'Ashgate Portfolio' ? 'Email Ashgate' : 'Email Agent'}
                       </a>
                     )}
@@ -1998,7 +2014,7 @@ export default function HomePage() {
                         href={`tel:${selectedListing.contact_phone.replace(/\s/g, '')}`}
                         className="w-full flex items-center justify-center gap-2 bg-gray-700 text-white rounded-lg py-3 font-semibold hover:bg-gray-800 transition-colors"
                       >
-                        <Phone className="w-4 h-4" />
+                      <Phone className="w-4 h-4" />
                         {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Call Owner' : selectedListing.broker === 'Ashgate Portfolio' ? 'Call Ashgate' : 'Call Agent'}
                       </a>
                     )}
@@ -2648,6 +2664,61 @@ export default function HomePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Partners Grid Component
+function PartnersGrid() {
+  const [partners, setPartners] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/partners`);
+        if (response.ok) {
+          const data = await response.json();
+          setPartners(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching partners:', error);
+        setPartners([]);
+      }
+    };
+    fetchPartners();
+  }, []);
+
+  if (partners.length === 0) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center">
+        <p className="col-span-full text-center text-gray-500 italic">
+          Our trusted partners will be displayed here. Partners are managed through the admin panel.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center">
+      {partners.map((partner) => (
+        <a
+          key={partner.id}
+          href={partner.website || '#'}
+          target={partner.website ? '_blank' : undefined}
+          rel={partner.website ? 'noopener noreferrer' : undefined}
+          className="flex items-center justify-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+        >
+          {partner.logo ? (
+            <img 
+              src={partner.logo} 
+              alt={partner.name}
+              className="max-h-12 max-w-full object-contain"
+            />
+          ) : (
+            <span className="text-gray-500 text-sm">{partner.name}</span>
+          )}
+        </a>
+      ))}
     </div>
   );
 }

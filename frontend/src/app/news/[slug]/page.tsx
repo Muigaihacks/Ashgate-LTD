@@ -1,40 +1,66 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-
-const content: Record<string, { title: string; body: string; date: string; author: string }> = {
-  'plant-trees-on-idle-land': {
-    title: 'Plant trees on idle land: species by Kenyan region',
-    date: '2025-10-30',
-    author: 'Ashgate Editorial',
-    body: 'Idle land can generate long-term value through timber, fruit or carbon credits. In high rainfall zones, consider grevillea and macadamia; in drier areas, drought-tolerant species like melia volkensii perform better...'
-  },
-  'buying-process-checklist': {
-    title: 'Buying land or a home: step-by-step checklist',
-    date: '2025-10-29',
-    author: 'Legal Desk',
-    body: 'From initial offer to registration, here are the key steps: conduct a search, verify beacon positions, obtain consent where required, and ensure proper transfer instruments are executed...'
-  },
-  'solar-payback': {
-    title: 'Solar for homes: costs, payback and incentives',
-    date: '2025-10-28',
-    author: 'Energy Desk',
-    body: 'Solar PV economics depend on consumption, sunlight and tariffs. Typical payback in urban Kenya ranges 3–6 years with net metering alternatives under consideration...'
-  }
-};
+import { ArrowLeft, Calendar, User } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ArticlePage() {
   const params = useParams();
   const router = useRouter();
   const slug = String(params?.slug || '');
-  const article = content[slug];
+  const [article, setArticle] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  if (!article) {
+  useEffect(() => {
+    const fetchArticle = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/news/${slug}`);
+        if (response.ok) {
+          const data = await response.json();
+          setArticle(data.data);
+          setError(false);
+        } else {
+          setError(true);
+        }
+      } catch (error) {
+        console.error('Error fetching article:', error);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchArticle();
+    }
+  }, [slug]);
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-2xl font-semibold">Article not found</div>
-          <button onClick={() => router.push('/news')} className="mt-4 px-4 py-2 rounded-lg border">Back to News</button>
+          <div className="text-lg text-gray-600">Loading article...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !article) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-2xl font-semibold text-gray-900 mb-2">Article not found</div>
+          <p className="text-gray-600 mb-4">The article you're looking for doesn't exist or has been removed.</p>
+          <Link 
+            href="/news" 
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to News
+          </Link>
         </div>
       </div>
     );
@@ -49,13 +75,60 @@ export default function ArticlePage() {
         }}
       ></div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
-        <button onClick={() => router.push('/news')} className="text-gray-700 hover:text-gray-900">← Back to News</button>
-        <h1 className="text-4xl font-bold text-gray-900 mt-3">{article.title}</h1>
-        <div className="text-sm text-gray-500 mt-1">{article.date} • {article.author}</div>
-        <div className="prose prose-lg mt-6 text-gray-800">
-          {article.body}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+        <Link 
+          href="/news" 
+          className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to News
+        </Link>
+
+        {article.featured_image && (
+          <div className="mb-8 rounded-xl overflow-hidden shadow-lg">
+            <img 
+              src={article.featured_image} 
+              alt={article.title}
+              className="w-full h-96 object-cover"
+            />
+          </div>
+        )}
+
+        <div className="mb-6">
+          {article.category && (
+            <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold mb-4">
+              {article.category}
+            </span>
+          )}
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mt-4 mb-4">{article.title}</h1>
+          
+          <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              {article.date}
+            </div>
+            <div className="flex items-center gap-1">
+              <User className="w-4 h-4" />
+              {article.author}
+            </div>
+            {article.view_count > 0 && (
+              <div className="text-gray-500">
+                {article.view_count} {article.view_count === 1 ? 'view' : 'views'}
+              </div>
+            )}
+          </div>
         </div>
+
+        {article.excerpt && (
+          <div className="text-xl text-gray-700 font-medium mb-8 leading-relaxed border-l-4 border-primary-600 pl-4">
+            {article.excerpt}
+          </div>
+        )}
+
+        <div 
+          className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
       </div>
     </div>
   );

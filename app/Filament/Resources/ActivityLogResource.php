@@ -72,6 +72,27 @@ class ActivityLogResource extends Resource
                                     ->readOnly(),
                             ]),
                         
+                        Forms\Components\Section::make('Login Details')
+                            ->schema([
+                                Forms\Components\TextInput::make('properties.ip_address')
+                                    ->label('IP Address')
+                                    ->readOnly()
+                                    ->visible(fn ($record) => isset($record->properties['ip_address'])),
+                                Forms\Components\TextInput::make('properties.device_type')
+                                    ->label('Device Type')
+                                    ->readOnly()
+                                    ->visible(fn ($record) => isset($record->properties['device_type'])),
+                                Forms\Components\TextInput::make('properties.device_name')
+                                    ->label('Device/Browser')
+                                    ->readOnly()
+                                    ->visible(fn ($record) => isset($record->properties['device_name'])),
+                                Forms\Components\TextInput::make('properties.location')
+                                    ->label('Location')
+                                    ->readOnly()
+                                    ->visible(fn ($record) => isset($record->properties['location'])),
+                            ])
+                            ->visible(fn ($record) => in_array($record->event ?? '', ['login', 'logout', 'failed_login'])),
+                        
                         Forms\Components\Section::make('Target Resource')
                             ->schema([
                                 Forms\Components\TextInput::make('subject_type')
@@ -124,6 +145,23 @@ class ActivityLogResource extends Resource
                     ->label('Action Summary')
                     ->limit(50)
                     ->tooltip(fn ($record) => $record->description),
+                
+                Tables\Columns\TextColumn::make('properties.ip_address')
+                    ->label('IP Address')
+                    ->visible(fn ($record) => isset($record->properties['ip_address']))
+                    ->badge()
+                    ->color('gray'),
+                
+                Tables\Columns\TextColumn::make('properties.device_type')
+                    ->label('Device')
+                    ->visible(fn ($record) => isset($record->properties['device_type']))
+                    ->badge()
+                    ->color('info'),
+                
+                Tables\Columns\TextColumn::make('properties.location')
+                    ->label('Location')
+                    ->visible(fn ($record) => isset($record->properties['location']))
+                    ->limit(30),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -133,6 +171,9 @@ class ActivityLogResource extends Resource
                         'updated' => 'Updated',
                         'deleted' => 'Deleted',
                         'restored' => 'Restored',
+                        'login' => 'Login',
+                        'logout' => 'Logout',
+                        'failed_login' => 'Failed Login',
                     ]),
                 Tables\Filters\SelectFilter::make('subject_type')
                     ->label('Resource Type')
@@ -142,6 +183,12 @@ class ActivityLogResource extends Resource
                         'App\Models\Application' => 'Applications',
                         'App\Models\NewsArticle' => 'News Articles',
                         'App\Models\ExpertProfile' => 'Expert Profiles',
+                    ]),
+                Tables\Filters\SelectFilter::make('log_name')
+                    ->label('Log Category')
+                    ->options([
+                        'auth' => 'Authentication',
+                        'default' => 'General',
                     ]),
             ])
             ->actions([

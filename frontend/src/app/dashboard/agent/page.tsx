@@ -697,14 +697,29 @@ export default function AgentDashboard() {
                       View Profile
                     </button>
                     <button 
-                      onClick={() => {
-                        // Clear any local auth state
-                        if (typeof window !== 'undefined') {
-                          localStorage.removeItem('ashgate_auth_token');
-                          localStorage.removeItem('ashgate_user');
-                          sessionStorage.clear();
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('ashgate_auth_token');
+                          if (token) {
+                            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/logout`, {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json',
+                              },
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Logout error:', error);
+                        } finally {
+                          // Clear any local auth state
+                          if (typeof window !== 'undefined') {
+                            localStorage.removeItem('ashgate_auth_token');
+                            localStorage.removeItem('ashgate_user');
+                            sessionStorage.clear();
+                          }
+                          router.push('/');
                         }
-                        router.push('/');
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >

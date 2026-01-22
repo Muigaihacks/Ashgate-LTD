@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExpertController;
+use App\Http\Controllers\Api\NewsController;
+use App\Http\Controllers\Api\PartnerController;
+use App\Http\Controllers\Api\TestimonialController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -31,6 +34,16 @@ Route::get('/properties/locations/list', [PropertyController::class, 'locations'
 // Public expert routes
 Route::get('/experts', [ExpertController::class, 'index']);
 Route::get('/experts/{id}', [ExpertController::class, 'show']);
+
+// Public news routes
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/{slug}', [NewsController::class, 'show']);
+
+// Public partner routes
+Route::get('/partners', [PartnerController::class, 'index']);
+
+// Public testimonial routes
+Route::get('/testimonials', [TestimonialController::class, 'index']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
