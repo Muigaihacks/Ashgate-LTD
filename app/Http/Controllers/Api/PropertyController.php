@@ -30,6 +30,11 @@ class PropertyController extends Controller
             $query->orWhere('user_id', $request->user()->id);
         }
 
+        // Filter by featured listings
+        if ($request->has('featured') && $request->boolean('featured')) {
+            $query->where('is_featured', true);
+        }
+
         // Filter by listing type (sale/rent)
         if ($request->has('listing_type')) {
             $query->where('listing_type', $request->listing_type);
@@ -72,7 +77,7 @@ class PropertyController extends Controller
         $perPage = $request->get('per_page', 15);
         $properties = $query->latest()->paginate($perPage);
 
-        // Add broker/company name to each property
+        // Add broker/company name and contact details to each property
         $propertiesData = $properties->items();
         foreach ($propertiesData as $property) {
             if ($property->user) {
@@ -82,13 +87,21 @@ class PropertyController extends Controller
                     ->first();
                 if ($application && isset($application->details['agency'])) {
                     $property->broker = $application->details['agency'];
+                    $property->contact_email = $property->user->email;
+                    $property->contact_phone = $property->user->phone ?? ($application->details['phone'] ?? null);
                 } elseif (!$property->user_id) {
                     $property->broker = 'Ashgate Portfolio';
+                    $property->contact_email = 'info@ashgate.co.ke';
+                    $property->contact_phone = '+254 700 580 379';
                 } else {
                     $property->broker = 'Direct Owner';
+                    $property->contact_email = $property->user->email;
+                    $property->contact_phone = $property->user->phone ?? null;
                 }
             } else {
                 $property->broker = 'Ashgate Portfolio';
+                $property->contact_email = 'info@ashgate.co.ke';
+                $property->contact_phone = '+254 700 000 000'; // Update with actual phone
             }
         }
 
@@ -147,7 +160,7 @@ class PropertyController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'listing_type' => 'required|in:sale,rent',
             'property_type' => 'required|string|in:House,Apartment,Commercial,Land',
             'price' => 'required|numeric|min:0',
@@ -170,15 +183,46 @@ class PropertyController extends Controller
             'amenities.*' => 'exists:amenities,id',
             'photos' => 'nullable|array',
             'photos.*' => 'image|max:5120', // 5MB per image
+            'primary_image_index' => 'nullable|integer|min:0',
             'videos' => 'nullable|array',
             'videos.*' => 'mimes:mp4,mov,avi|max:51200', // 50MB per video
         ]);
 
         try {
+            // Map property_type string to property_type_id
+            $propertyTypeName = $validated['property_type'];
+            $propertyTypeId = DB::table('property_types')
+                ->where('name', $propertyTypeName)
+                ->where('is_active', true)
+                ->value('id');
+            
+            // If property type doesn't exist, create it
+            if (!$propertyTypeId) {
+                $slug = strtolower(str_replace(' ', '-', $propertyTypeName));
+                
+                // Check if slug already exists, if so append a number
+                $baseSlug = $slug;
+                $counter = 1;
+                while (DB::table('property_types')->where('slug', $slug)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+                
+                $propertyTypeId = DB::table('property_types')->insertGetId([
+                    'name' => $propertyTypeName,
+                    'slug' => $slug,
+                    'is_active' => true,
+                    'sort_order' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            
             $property = Property::create([
                 'user_id' => Auth::id(),
+                'property_type_id' => $propertyTypeId,
                 'title' => $validated['title'],
-                'description' => $validated['description'],
+                'description' => $validated['description'] ?? '',
                 'listing_type' => $validated['listing_type'],
                 'property_type' => $validated['property_type'],
                 'price' => $validated['price'],
@@ -191,10 +235,10 @@ class PropertyController extends Controller
                 'parking_spaces' => $validated['parking_spaces'] ?? null,
                 'area_sqm' => $validated['area_sqm'] ?? null,
                 'year_built' => $validated['year_built'] ?? null,
-                'has_3d_tour' => $validated['has_3d_tour'] ?? false,
-                'has_floor_plan' => $validated['has_floor_plan'] ?? false,
+                'has_3d_tour' => filter_var($validated['has_3d_tour'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'has_floor_plan' => filter_var($validated['has_floor_plan'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'status' => $validated['status'] ?? 'available',
-                'is_active' => $validated['is_active'] ?? true,
+                'is_active' => filter_var($validated['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
             ]);
 
             // Attach amenities
@@ -205,17 +249,39 @@ class PropertyController extends Controller
             // Handle image uploads
             if ($request->hasFile('photos')) {
                 $sortOrder = 0;
-                $isFirst = true;
-                foreach ($request->file('photos') as $photo) {
+                $primaryIndex = (int) $request->input('primary_image_index', 0); // Default to first image
+                $photoIndex = 0;
+                $photoFiles = $request->file('photos');
+                $totalPhotos = count($photoFiles);
+                
+                // Ensure primary index is within bounds
+                if ($primaryIndex < 0 || $primaryIndex >= $totalPhotos) {
+                    $primaryIndex = 0;
+                }
+                
+                foreach ($photoFiles as $photo) {
                     $path = $photo->store('property-images', 'public');
                     PropertyImage::create([
                         'property_id' => $property->id,
                         'url' => $path,
                         'alt_text' => $property->title,
                         'sort_order' => $sortOrder++,
-                        'is_primary' => $isFirst,
+                        'is_primary' => ($photoIndex == $primaryIndex),
                     ]);
-                    $isFirst = false;
+                    $photoIndex++;
+                }
+                
+                // Ensure only one primary image exists (safety check)
+                $primaryImages = $property->images()->where('is_primary', true)->get();
+                if ($primaryImages->count() > 1) {
+                    // Keep the first one, unset the rest
+                    $keepPrimary = $primaryImages->first();
+                    $property->images()->where('is_primary', true)
+                        ->where('id', '!=', $keepPrimary->id)
+                        ->update(['is_primary' => false]);
+                } elseif ($primaryImages->count() === 0 && $property->images()->count() > 0) {
+                    // If no primary was set, set the first image as primary
+                    $property->images()->orderBy('sort_order')->first()->update(['is_primary' => true]);
                 }
             }
 
@@ -236,7 +302,7 @@ class PropertyController extends Controller
             // Load relationships for response
             $property->load(['images', 'amenities', 'user:id,name,email,phone']);
             
-            // Get user's application for company name (if agent)
+            // Get user's application for company name and add contact details (if agent)
             if ($property->user) {
                 $application = \App\Models\Application::where('email', $property->user->email)
                     ->where('type', 'agent')
@@ -244,11 +310,21 @@ class PropertyController extends Controller
                     ->first();
                 if ($application && isset($application->details['agency'])) {
                     $property->broker = $application->details['agency'];
+                    $property->contact_email = $property->user->email;
+                    $property->contact_phone = $property->user->phone ?? ($application->details['phone'] ?? null);
                 } elseif (!$property->user_id) {
                     $property->broker = 'Ashgate Portfolio';
+                    $property->contact_email = 'info@ashgate.co.ke';
+                    $property->contact_phone = '+254 700 580 379';
                 } else {
                     $property->broker = 'Direct Owner';
+                    $property->contact_email = $property->user->email;
+                    $property->contact_phone = $property->user->phone ?? null;
                 }
+            } else {
+                $property->broker = 'Ashgate Portfolio';
+                $property->contact_email = 'info@ashgate.co.ke';
+                $property->contact_phone = '+254 700 580 379';
             }
 
             return response()->json([
@@ -257,10 +333,24 @@ class PropertyController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error('Property creation error: ' . $e->getMessage());
+            Log::error('Property creation error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'user_id' => Auth::id(),
+            ]);
+            
+            // Return more detailed error message
+            $errorMessage = 'Failed to create property';
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                $errorMessage = 'Validation failed: ' . $e->getMessage();
+            } elseif ($e instanceof \Illuminate\Database\QueryException) {
+                $errorMessage = 'Database error: ' . $e->getMessage();
+            } else {
+                $errorMessage = $e->getMessage();
+            }
+            
             return response()->json([
-                'message' => 'Failed to create property',
-                'error' => $e->getMessage()
+                'message' => $errorMessage,
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while creating the property'
             ], 500);
         }
     }
@@ -280,7 +370,7 @@ class PropertyController extends Controller
             ], 404);
         }
 
-        // Add broker/company name
+        // Add broker/company name and contact details
         if ($property->user) {
             $application = \App\Models\Application::where('email', $property->user->email)
                 ->where('type', 'agent')
@@ -288,13 +378,21 @@ class PropertyController extends Controller
                 ->first();
             if ($application && isset($application->details['agency'])) {
                 $property->broker = $application->details['agency'];
+                $property->contact_email = $property->user->email;
+                $property->contact_phone = $property->user->phone ?? ($application->details['phone'] ?? null);
             } elseif (!$property->user_id) {
                 $property->broker = 'Ashgate Portfolio';
+                $property->contact_email = 'info@ashgate.co.ke';
+                $property->contact_phone = '+254 700 580 379';
             } else {
                 $property->broker = 'Direct Owner';
+                $property->contact_email = $property->user->email;
+                $property->contact_phone = $property->user->phone ?? null;
             }
         } else {
             $property->broker = 'Ashgate Portfolio';
+            $property->contact_email = 'info@ashgate.co.ke';
+            $property->contact_phone = '+254 700 580 379';
         }
 
         // Increment view count
@@ -398,7 +496,7 @@ class PropertyController extends Controller
             // Reload relationships
             $property->load(['images', 'amenities', 'user:id,name,email,phone']);
             
-            // Update broker info
+            // Update broker info and contact details
             if ($property->user) {
                 $application = \App\Models\Application::where('email', $property->user->email)
                     ->where('type', 'agent')
@@ -406,11 +504,21 @@ class PropertyController extends Controller
                     ->first();
                 if ($application && isset($application->details['agency'])) {
                     $property->broker = $application->details['agency'];
+                    $property->contact_email = $property->user->email;
+                    $property->contact_phone = $property->user->phone ?? ($application->details['phone'] ?? null);
                 } elseif (!$property->user_id) {
                     $property->broker = 'Ashgate Portfolio';
+                    $property->contact_email = 'info@ashgate.co.ke';
+                    $property->contact_phone = '+254 700 580 379';
                 } else {
                     $property->broker = 'Direct Owner';
+                    $property->contact_email = $property->user->email;
+                    $property->contact_phone = $property->user->phone ?? null;
                 }
+            } else {
+                $property->broker = 'Ashgate Portfolio';
+                $property->contact_email = 'info@ashgate.co.ke';
+                $property->contact_phone = '+254 700 580 379';
             }
 
             return response()->json([

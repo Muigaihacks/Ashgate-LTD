@@ -86,8 +86,8 @@ const createBlankProperty = (id: string): Property => ({
 
 export default function HomeownerDashboard() {
   const router = useRouter();
-  const [properties, setProperties] = useState<Property[]>([createBlankProperty('property-1')]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>('property-1');
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -99,6 +99,7 @@ export default function HomeownerDashboard() {
   const [language] = useState('English');
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [propertyFiles, setPropertyFiles] = useState<Record<string, { photos: File[], videos: File[], floorPlan?: File, tour3D?: File }>>({});
+  const [primaryImageIndex, setPrimaryImageIndex] = useState<Record<string, number>>({});
   const [userData, setUserData] = useState<any>(null);
   const [userApplication, setUserApplication] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -225,11 +226,37 @@ export default function HomeownerDashboard() {
   };
 
   const removePhoto = (propertyId: string, index: number) => {
+    const currentPrimary = primaryImageIndex[propertyId] ?? 0;
+    
     setProperties(prev => prev.map(p => 
       p.id === propertyId 
         ? { ...p, photos: p.photos.filter((_, i) => i !== index) }
         : p
     ));
+    
+    // Update primary image index if needed
+    if (currentPrimary === index) {
+      // If we removed the primary image, set first image as primary
+      setPrimaryImageIndex(prev => ({ ...prev, [propertyId]: 0 }));
+    } else if (currentPrimary > index) {
+      // If we removed an image before the primary, adjust the index
+      setPrimaryImageIndex(prev => ({ ...prev, [propertyId]: currentPrimary - 1 }));
+    }
+    
+    // Also remove from propertyFiles
+    setPropertyFiles(prev => {
+      const files = prev[propertyId];
+      if (files?.photos) {
+        return {
+          ...prev,
+          [propertyId]: {
+            ...files,
+            photos: files.photos.filter((_, i) => i !== index)
+          }
+        };
+      }
+      return prev;
+    });
   };
 
   const removeVideo = (propertyId: string, index: number) => {
@@ -245,6 +272,7 @@ export default function HomeownerDashboard() {
     const newProperty = createBlankProperty(newId);
     setProperties(prev => [...prev, newProperty]);
     setSelectedPropertyId(newId);
+    setPrimaryImageIndex(prev => ({ ...prev, [newId]: 0 }));
   };
 
   const deleteProperty = (propertyId: string) => {
@@ -333,7 +361,7 @@ export default function HomeownerDashboard() {
       formData.append('parking_spaces', property.parking.na ? '0' : (property.parking.value || '0'));
       formData.append('area_sqm', property.area.na ? '0' : (property.area.value || '0'));
       formData.append('status', property.status.toLowerCase());
-      formData.append('is_active', 'true');
+      formData.append('is_active', '1');
 
       // Add amenities
       selectedAmenities.forEach(id => formData.append('amenities[]', id.toString()));
@@ -342,17 +370,20 @@ export default function HomeownerDashboard() {
       const files = propertyFiles[propertyId];
       if (files?.photos) {
         files.photos.forEach(photo => formData.append('photos[]', photo));
+        // Add primary image index
+        const primaryIdx = primaryImageIndex[propertyId] ?? 0;
+        formData.append('primary_image_index', primaryIdx.toString());
       }
 
       // Add floor plan and 3D tour if property type supports it
       if (['House', 'Apartment', 'Commercial'].includes(property.propertyType)) {
         if (files?.floorPlan) {
           formData.append('floor_plan', files.floorPlan);
-          formData.append('has_floor_plan', 'true');
+          formData.append('has_floor_plan', '1');
         }
         if (files?.tour3D) {
           formData.append('3d_tour', files.tour3D);
-          formData.append('has_3d_tour', 'true');
+          formData.append('has_3d_tour', '1');
         }
       }
 
@@ -369,6 +400,8 @@ export default function HomeownerDashboard() {
       const data = await response.json();
       if (response.ok) {
         alert('Listing saved successfully! It will appear on the listings page shortly.');
+        // Just close the details form, keep the property in the list for editing
+        setSelectedPropertyId(null);
       } else {
         alert('Failed to save listing: ' + (data.message || 'Unknown error'));
       }
@@ -727,21 +760,42 @@ export default function HomeownerDashboard() {
 
                         {property.photos.length > 0 ? (
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {property.photos.map((photo, index) => (
-                              <div key={index} className="relative group">
-                                <img
-                                  src={photo}
-                                  alt={`Property photo ${index + 1}`}
-                                  className="w-full h-48 object-cover rounded-lg"
-                                />
-                                <button
-                                  onClick={() => removePhoto(property.id, index)}
-                                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ))}
+                            {property.photos.map((photo, index) => {
+                              const isPrimary = (primaryImageIndex[property.id] ?? 0) === index;
+                              return (
+                                <div key={index} className="relative group">
+                                  <img
+                                    src={photo}
+                                    alt={`Property photo ${index + 1}`}
+                                    className={`w-full h-48 object-cover rounded-lg ${isPrimary ? 'ring-4 ring-primary-500' : ''}`}
+                                  />
+                                  {isPrimary && (
+                                    <div className="absolute top-2 left-2 px-2 py-1 bg-primary-600 text-white text-xs font-semibold rounded">
+                                      Primary
+                                    </div>
+                                  )}
+                                  <div className="absolute top-2 right-2 flex gap-2">
+                                    <button
+                                      onClick={() => setPrimaryImageIndex(prev => ({ ...prev, [property.id]: index }))}
+                                      className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                                        isPrimary 
+                                          ? 'bg-primary-600 text-white opacity-100' 
+                                          : 'bg-white text-gray-700 hover:bg-primary-50'
+                                      }`}
+                                      title="Set as primary image"
+                                    >
+                                      <ImageIcon className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => removePhoto(property.id, index)}
+                                      className="p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className={`border-2 border-dashed ${darkMode ? 'border-gray-600' : 'border-gray-300'} rounded-lg p-12 text-center`}>

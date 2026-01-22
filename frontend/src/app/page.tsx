@@ -386,10 +386,10 @@ export default function HomePage() {
   }, [realEstateIcons.length]);
 
   const [propertyTypes, setPropertyTypes] = useState([
-    { icon: <HomeIcon className="w-8 h-8" />, label: 'Houses', count: '0' },
-    { icon: <Building2 className="w-8 h-8" />, label: 'Apartments', count: '0' },
-    { icon: <Trees className="w-8 h-8" />, label: 'Land', count: '0' },
-    { icon: <Landmark className="w-8 h-8" />, label: 'Commercial', count: '0' },
+    { icon: <HomeIcon className="w-8 h-8" />, label: 'Houses', count: '0', apiName: 'House' },
+    { icon: <Building2 className="w-8 h-8" />, label: 'Apartments', count: '0', apiName: 'Apartment' },
+    { icon: <Trees className="w-8 h-8" />, label: 'Land', count: '0', apiName: 'Land' },
+    { icon: <Landmark className="w-8 h-8" />, label: 'Commercial', count: '0', apiName: 'Commercial' },
   ]);
 
   // Fetch category counts and locations on mount
@@ -406,7 +406,7 @@ export default function HomePage() {
           
           setPropertyTypes(prev => prev.map(type => ({
             ...type,
-            count: counts[type.label] ? new Intl.NumberFormat('en-US').format(counts[type.label]) : '0'
+            count: counts[type.apiName] ? new Intl.NumberFormat('en-US').format(counts[type.apiName]) : '0'
           })));
         }
       } catch (error) {
@@ -444,123 +444,82 @@ export default function HomePage() {
     }
   }, [searchLocation, locations]);
 
-  // Featured listings data (stubbed for now). Wire to backend later.
-  const featuredListings = [
-    {
-      id: 7,
-      title: 'Lovely 2BR Serviced Apartment near UN/Runda',
-      price: 'KSh 170,000/mo',
-      listingType: 'rent',
-      location: 'Lymak Suites, Fourways Junction, Nairobi',
-      details: '2 bed • 2 bath • Fully Furnished • Serviced',
-      fullDescription: 'A lovely, fully furnished and spacious, serviced 2 bedroom 2 bath apartment just became available near the UN/Runda area — perfect for families or professionals.\n\n🏡 Highlights:\n• Secure compound with gym, pool, rooftop & restaurant all onsite.\n• Daily housekeeping\n• Beautiful garden\n• Close to UN, Gigiri & Village Market\n\nRent payment includes:\n• Furniture + linen\n• Electricity (plus back-up generator)\n• Water\n• Daily Housekeeping\n• Laundry Facilities\n• Pool\n• Gym\n\nOwner prefers long-term tenant (2+ years). Rent is KSh 170,000 per month but negotiable for long term leases.',
-      specs: { beds: 2, baths: 2, parking: 1, area: 120, year: 0 },
-      category: 'Apartment',
-      broker: 'Direct Owner',
-      source: 'owner',
-      has3DTour: false,
-      hasFloorPlan: false,
-      images: [
-        '/images/listings/lymak1.jpeg',
-        '/images/listings/lymak2.jpeg',
-        '/images/listings/lymak3.jpeg',
-        '/images/listings/lymak4.jpeg',
-        '/images/listings/lymak5.jpeg',
-        '/images/listings/lymak6.jpeg'
-      ],
-      coords: { lat: -1.205, lng: 36.840 }
-    },
-    {
-      id: 1,
-      title: 'Modern 3BR Apartment',
-      price: 'KSh 18.5M',
-      listingType: 'sale',
-      location: 'Westlands, Nairobi',
-      details: '3 bed • 2 bath • 145m²',
-      specs: { beds: 3, baths: 2, parking: 1, area: 145, year: 2019 },
-      category: 'Apartment',
-      broker: 'Direct Owner',
-      source: 'owner',
-      has3DTour: true,
-      hasFloorPlan: false,
-      coords: { lat: -1.268, lng: 36.811 }
-    },
-    {
-      id: 2,
-      title: '1/4 Acre Prime Plot',
-      price: 'KSh 6.2M',
-      listingType: 'sale',
-      location: 'Ruiru, Kiambu',
-      details: 'Serviced • Ready Title',
-      specs: { beds: 0, baths: 0, parking: 0, area: 1011, year: 0 },
-      category: 'Land',
-      broker: 'Brokered by Kiambu Lands Ltd',
-      source: 'agent',
-      has3DTour: false,
-      hasFloorPlan: false,
-      coords: { lat: -1.152, lng: 36.962 }
-    },
-    {
-      id: 3,
-      title: 'Commercial Office Space',
-      price: 'KSh 220K/mo',
-      listingType: 'rent',
-      location: 'Upper Hill, Nairobi',
-      details: '250m² • Parking • 24/7 Security',
-      specs: { beds: 0, baths: 2, parking: 4, area: 250, year: 2015 },
-      category: 'Commercial',
-      broker: 'Direct Owner',
-      source: 'owner',
-      has3DTour: false,
-      hasFloorPlan: true,
-      coords: { lat: -1.300, lng: 36.817 }
-    },
-    {
-      id: 4,
-      title: '4BR Family House',
-      price: 'KSh 32M',
-      listingType: 'sale',
-      location: 'Runda, Nairobi',
-      details: '4 bed • 4.5 bath • DSQ',
-      specs: { beds: 4, baths: 5, parking: 2, area: 320, year: 2012 },
-      category: 'House',
-      broker: 'Brokered by Runda Estates',
-      source: 'agent',
-      has3DTour: true,
-      hasFloorPlan: true,
-      coords: { lat: -1.223, lng: 36.832 }
-    },
-    {
-      id: 5,
-      title: 'Furnished Expat Apartment',
-      price: 'USD 1,800/mo',
-      listingType: 'rent',
-      location: 'Kilimani, Nairobi',
-      details: '2 bed • Gym • Pool',
-      specs: { beds: 2, baths: 2, parking: 1, area: 110, year: 2020 },
-      category: 'Apartment',
-      broker: 'Brokered by Kilimani Homes',
-      source: 'agent',
-      has3DTour: false,
-      hasFloorPlan: false,
-      coords: { lat: -1.292, lng: 36.784 }
-    },
-    {
-      id: 6,
-      title: 'Warehouse to Let',
-      price: 'KSh 380K/mo',
-      listingType: 'rent',
-      location: 'Mlolongo, Athi River',
-      details: '1,200m² • High Roof • Yard',
-      specs: { beds: 0, baths: 1, parking: 6, area: 1200, year: 2010 },
-      category: 'Industrial',
-      broker: 'Brokered by Athi Logistics',
-      source: 'agent',
-      has3DTour: false,
-      hasFloorPlan: false,
-      coords: { lat: -1.369, lng: 36.939 }
-    },
-  ];
+  // Featured listings - fetch from API
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
+  
+  useEffect(() => {
+    const fetchFeaturedListings = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties?per_page=10`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter for featured listings only (is_featured = true)
+          const featured = (data.data || []).filter((p: any) => p.is_featured === true).slice(0, 10);
+          
+          // Transform API data to match expected format
+          const transformed = featured.map((p: any) => {
+            // Get primary image URL
+            const primaryImage = p.images?.find((img: any) => img.is_primary);
+            const imageUrl = primaryImage 
+              ? (primaryImage.url.startsWith('http') ? primaryImage.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${primaryImage.url}`)
+              : (p.images && p.images.length > 0 
+                  ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${p.images[0].url}`)
+                  : null);
+            
+            // Get all image URLs
+            const allImages = p.images && p.images.length > 0
+              ? p.images
+                  .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+                  .map((img: any) => img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${img.url}`)
+              : [];
+            
+            return {
+              id: p.id,
+              title: p.title,
+              price: p.listing_type === 'rent' 
+                ? `${p.currency || 'KSh'} ${new Intl.NumberFormat('en-US').format(p.price)}/mo`
+                : `${p.currency || 'KSh'} ${new Intl.NumberFormat('en-US').format(p.price)}`,
+              listingType: p.listing_type,
+              location: p.location_text,
+              details: [
+                p.beds ? `${p.beds} bed` : null,
+                p.baths ? `${p.baths} bath` : null,
+                p.area_sqm ? `${p.area_sqm}m²` : null,
+              ].filter(Boolean).join(' • '),
+              fullDescription: p.description || '',
+              specs: { 
+                beds: p.beds || 0, 
+                baths: p.baths || 0, 
+                parking: p.parking_spaces || 0, 
+                area: p.area_sqm || 0, 
+                year: p.year_built || 0 
+              },
+              category: p.property_type,
+              broker: p.broker || 'Direct Owner',
+              source: p.broker === 'Direct Owner' ? 'owner' : 'agent',
+              has3DTour: p.has_3d_tour || false,
+              hasFloorPlan: p.has_floor_plan || false,
+              images: allImages.length > 0 ? allImages : (imageUrl ? [imageUrl] : []),
+              coords: p.latitude && p.longitude ? { lat: parseFloat(p.latitude), lng: parseFloat(p.longitude) } : null,
+              amenities: p.amenities || [],
+              contact_email: p.contact_email || null,
+              contact_phone: p.contact_phone || null
+            };
+          });
+          
+          setFeaturedListings(transformed);
+        }
+      } catch (error) {
+        console.error('Error fetching featured listings:', error);
+        setFeaturedListings([]);
+      } finally {
+        setIsLoadingFeatured(false);
+      }
+    };
+    
+    fetchFeaturedListings();
+  }, []);
 
   const listingsScrollRef = useRef<HTMLDivElement | null>(null);
   const listingsAutoScrollRef = useRef<number | null>(null);
@@ -1390,8 +1349,9 @@ export default function HomePage() {
                 setTimeout(() => setIsManuallyScrolling(false), 2000);
               }}
             >
-              {/* Render listings three times for seamless infinite loop */}
-              {[...featuredListings, ...featuredListings, ...featuredListings].map((item, idx) => {
+              {/* Render listings - use unique IDs to prevent duplicates */}
+              {featuredListings.length > 0 ? (
+                [...featuredListings, ...featuredListings, ...featuredListings].map((item, idx) => {
                 const isDirectOwner = item.source === 'owner' || item.broker === 'Direct Owner';
                 return (
                 <div key={`${item.id}-${idx}`} className="flex-shrink-0 w-[380px] bg-white rounded-xl overflow-hidden shadow card-hover-raise cursor-pointer" onClick={() => { setSelectedListing(item); setIsDetailsOpen(true); setSelectedImageIndex(0); }}>
@@ -1431,7 +1391,11 @@ export default function HomePage() {
                   </div>
                 </div>
                 );
-              })}
+              })) : (
+                <div className="flex-shrink-0 w-[380px] flex items-center justify-center text-gray-500">
+                  No featured listings available
+                </div>
+              )}
             </div>
           </div>
 
@@ -2001,21 +1965,43 @@ export default function HomePage() {
                       <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-800 border">Floor Plan</span>
                     )}
                   </div>
+                  {selectedListing.amenities && selectedListing.amenities.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Amenities</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedListing.amenities.map((amenity: any, idx: number) => (
+                          <span key={idx} className="text-xs font-medium px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
+                            {amenity.name || amenity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <aside className="border-l border-gray-200 p-6">
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <div className="font-semibold text-gray-900 mb-1">{selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Contact Owner' : 'Contact Agent'}</div>
+                  <div className="font-semibold text-gray-900 mb-1">{selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Contact Owner' : selectedListing.broker === 'Ashgate Portfolio' ? 'Contact Ashgate' : 'Contact Agent'}</div>
                   <p className="text-sm text-gray-600 mb-3">Have questions or want to schedule a tour?</p>
                   <div className="flex flex-col gap-2">
-                    <button className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700 transition-colors">
-                      <Mail className="w-4 h-4" />
-                      {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Email Owner' : 'Email Agent'}
-                    </button>
-                    <button className="w-full flex items-center justify-center gap-2 bg-gray-700 text-white rounded-lg py-3 font-semibold hover:bg-gray-800 transition-colors">
-                      <Phone className="w-4 h-4" />
-                      {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Call Owner' : 'Call Agent'}
-                    </button>
+                    {selectedListing.contact_email && (
+                      <a 
+                        href={`mailto:${selectedListing.contact_email}`}
+                        className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700 transition-colors"
+                      >
+                        <Mail className="w-4 h-4" />
+                        {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Email Owner' : selectedListing.broker === 'Ashgate Portfolio' ? 'Email Ashgate' : 'Email Agent'}
+                      </a>
+                    )}
+                    {selectedListing.contact_phone && (
+                      <a 
+                        href={`tel:${selectedListing.contact_phone.replace(/\s/g, '')}`}
+                        className="w-full flex items-center justify-center gap-2 bg-gray-700 text-white rounded-lg py-3 font-semibold hover:bg-gray-800 transition-colors"
+                      >
+                        <Phone className="w-4 h-4" />
+                        {selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'Call Owner' : selectedListing.broker === 'Ashgate Portfolio' ? 'Call Ashgate' : 'Call Agent'}
+                      </a>
+                    )}
                   </div>
                 </div>
                 <div className="text-sm text-gray-600">Listed by: <span className={`font-semibold ${selectedListing.source === 'owner' || selectedListing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-900'}`}>

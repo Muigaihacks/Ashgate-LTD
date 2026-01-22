@@ -30,7 +30,57 @@ export default function ListingsPage() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
-          setAllListings(data.data || []);
+          // Transform API data to match expected format
+          const transformed = (data.data || []).map((p: any) => {
+            // Get primary image first
+            const primaryImage = p.images?.find((img: any) => img.is_primary);
+            const imageUrl = primaryImage 
+              ? (primaryImage.url.startsWith('http') ? primaryImage.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${primaryImage.url}`)
+              : (p.images && p.images.length > 0 
+                  ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${p.images[0].url}`)
+                  : null);
+            
+            // Get all image URLs
+            const allImages = p.images && p.images.length > 0
+              ? p.images
+                  .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+                  .map((img: any) => img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${img.url}`)
+              : [];
+            
+            return {
+              id: p.id,
+              title: p.title,
+              price: p.listing_type === 'rent' 
+                ? `${p.currency || 'KSh'} ${new Intl.NumberFormat('en-US').format(p.price)}/mo`
+                : `${p.currency || 'KSh'} ${new Intl.NumberFormat('en-US').format(p.price)}`,
+              listingType: p.listing_type,
+              location: p.location_text,
+              details: [
+                p.beds ? `${p.beds} bed` : null,
+                p.baths ? `${p.baths} bath` : null,
+                p.area_sqm ? `${p.area_sqm}m²` : null,
+              ].filter(Boolean).join(' • '),
+              fullDescription: p.description || '',
+              specs: { 
+                beds: p.beds || 0, 
+                baths: p.baths || 0, 
+                parking: p.parking_spaces || 0, 
+                area: p.area_sqm || 0, 
+                year: p.year_built || 0 
+              },
+              category: p.property_type,
+              broker: p.broker || 'Direct Owner',
+              source: p.broker === 'Direct Owner' ? 'owner' : 'agent',
+              has3DTour: p.has_3d_tour || false,
+              hasFloorPlan: p.has_floor_plan || false,
+              images: allImages.length > 0 ? allImages : (imageUrl ? [imageUrl] : []),
+              coords: p.latitude && p.longitude ? { lat: parseFloat(p.latitude), lng: parseFloat(p.longitude) } : null,
+              amenities: p.amenities || [],
+              contact_email: p.contact_email || null,
+              contact_phone: p.contact_phone || null
+            };
+          });
+          setAllListings(transformed);
         }
       } catch (error) {
         console.error('Error fetching listings:', error);
@@ -278,15 +328,40 @@ function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void })
                 {listing.has3DTour && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-800 border">3D Tour</span>)}
                 {listing.hasFloorPlan && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-800 border">Floor Plan</span>)}
               </div>
+              {listing.amenities && listing.amenities.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Amenities</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {listing.amenities.map((amenity: any, idx: number) => (
+                      <span key={idx} className="text-xs font-medium px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
+                        {amenity.name || amenity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <aside className="border-l border-gray-200 p-6">
             <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="font-semibold text-gray-900 mb-1">{listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Contact Owner' : 'Contact Agent'}</div>
+              <div className="font-semibold text-gray-900 mb-1">{listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Contact Owner' : listing.broker === 'Ashgate Portfolio' ? 'Contact Ashgate' : 'Contact Agent'}</div>
               <p className="text-sm text-gray-600 mb-3">Have questions or want to schedule a tour?</p>
-              <button className="w-full bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700">
-                {listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Email Owner' : 'Email Agent'}
-              </button>
+              {listing.contact_email && (
+                <a 
+                  href={`mailto:${listing.contact_email}`}
+                  className="w-full block bg-primary-600 text-white rounded-lg py-3 font-semibold hover:bg-primary-700 text-center mb-2"
+                >
+                  {listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Email Owner' : listing.broker === 'Ashgate Portfolio' ? 'Email Ashgate' : 'Email Agent'}
+                </a>
+              )}
+              {listing.contact_phone && (
+                <a 
+                  href={`tel:${listing.contact_phone.replace(/\s/g, '')}`}
+                  className="w-full block bg-gray-200 text-gray-900 rounded-lg py-3 font-semibold hover:bg-gray-300 text-center"
+                >
+                  Call: {listing.contact_phone}
+                </a>
+              )}
             </div>
             <div className="text-sm text-gray-600">Listed by: <span className={`font-semibold ${listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'text-blue-600' : 'text-gray-900'}`}>
               {listing.source === 'owner' || listing.broker === 'Direct Owner' ? 'Direct Owner' : listing.broker}

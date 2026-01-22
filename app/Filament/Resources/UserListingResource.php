@@ -52,6 +52,18 @@ class UserListingResource extends Resource
                         Forms\Components\Toggle::make('is_active')
                             ->label('Visible on Platform')
                             ->helperText('Disable this to hide the listing from the public user side.'),
+                        Forms\Components\Toggle::make('is_featured')
+                            ->label('Featured Listing')
+                            ->helperText('Feature this listing on the homepage. Only 10 listings can be featured at a time.')
+                            ->afterStateUpdated(function ($state, $set) {
+                                if ($state) {
+                                    $featuredCount = Property::where('is_featured', true)->count();
+                                    if ($featuredCount >= 10) {
+                                        $set('is_featured', false);
+                                        throw new \Exception('Maximum 10 featured listings allowed');
+                                    }
+                                }
+                            }),
                     ]),
             ]);
     }
