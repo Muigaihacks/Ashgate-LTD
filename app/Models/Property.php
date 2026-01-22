@@ -21,6 +21,7 @@ class Property extends Model
         'title',
         'description',
         'listing_type',
+        'property_type', // Category: House, Apartment, Commercial, Land
         'price',
         'currency',
         'status',
@@ -34,6 +35,8 @@ class Property extends Model
         'year_built',
         'has_3d_tour',
         'has_floor_plan',
+        'floor_plan_url',
+        '3d_tour_url',
         'broker',
         'view_count',
         'is_featured',

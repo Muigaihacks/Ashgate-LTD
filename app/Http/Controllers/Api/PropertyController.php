@@ -22,7 +22,7 @@ class PropertyController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Property::with(['images', 'amenities', 'user:id,name,email'])
+        $query = Property::with(['images', 'amenities', 'user:id,name,email,phone'])
             ->where('is_active', true);
 
         // If authenticated, also include user's own properties (active or inactive)
@@ -48,6 +48,16 @@ class PropertyController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
 
+        // Filter by property type/category
+        if ($request->has('category')) {
+            $query->where('property_type', $request->category);
+        }
+
+        // Filter by location
+        if ($request->has('location')) {
+            $query->whereRaw('LOWER(location_text) LIKE ?', ['%' . strtolower($request->location) . '%']);
+        }
+
         // Search by title, description, or location
         if ($request->has('search')) {
             $search = $request->search;
@@ -62,8 +72,28 @@ class PropertyController extends Controller
         $perPage = $request->get('per_page', 15);
         $properties = $query->latest()->paginate($perPage);
 
+        // Add broker/company name to each property
+        $propertiesData = $properties->items();
+        foreach ($propertiesData as $property) {
+            if ($property->user) {
+                $application = \App\Models\Application::where('email', $property->user->email)
+                    ->where('type', 'agent')
+                    ->where('status', 'approved')
+                    ->first();
+                if ($application && isset($application->details['agency'])) {
+                    $property->broker = $application->details['agency'];
+                } elseif (!$property->user_id) {
+                    $property->broker = 'Ashgate Portfolio';
+                } else {
+                    $property->broker = 'Direct Owner';
+                }
+            } else {
+                $property->broker = 'Ashgate Portfolio';
+            }
+        }
+
         return response()->json([
-            'data' => $properties->items(),
+            'data' => $propertiesData,
             'pagination' => [
                 'current_page' => $properties->currentPage(),
                 'last_page' => $properties->lastPage(),
@@ -71,6 +101,41 @@ class PropertyController extends Controller
                 'total' => $properties->total(),
             ]
         ]);
+    }
+
+    /**
+     * Get available categories and their counts
+     */
+    public function categories()
+    {
+        $categories = Property::where('is_active', true)
+            ->select('property_type', DB::raw('count(*) as count'))
+            ->groupBy('property_type')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'name' => $item->property_type,
+                    'count' => $item->count
+                ];
+            });
+
+        return response()->json(['data' => $categories]);
+    }
+
+    /**
+     * Get available locations (unique location_text values)
+     */
+    public function locations()
+    {
+        $locations = Property::where('is_active', true)
+            ->select('location_text')
+            ->distinct()
+            ->orderBy('location_text')
+            ->pluck('location_text')
+            ->filter()
+            ->values();
+
+        return response()->json(['data' => $locations]);
     }
 
     /**
@@ -84,6 +149,7 @@ class PropertyController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'listing_type' => 'required|in:sale,rent',
+            'property_type' => 'required|string|in:House,Apartment,Commercial,Land',
             'price' => 'required|numeric|min:0',
             'currency' => 'nullable|string|max:10|default:KSh',
             'location_text' => 'required|string|max:255',
@@ -96,6 +162,8 @@ class PropertyController extends Controller
             'year_built' => 'nullable|integer|min:1800|max:' . date('Y'),
             'has_3d_tour' => 'nullable|boolean',
             'has_floor_plan' => 'nullable|boolean',
+            'floor_plan' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
+            '3d_tour' => 'nullable|file|mimes:mp4,mov,avi,glb,gltf|max:102400', // 100MB
             'status' => 'nullable|string|in:available,taken,pending',
             'is_active' => 'nullable|boolean',
             'amenities' => 'nullable|array',
@@ -112,6 +180,7 @@ class PropertyController extends Controller
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'listing_type' => $validated['listing_type'],
+                'property_type' => $validated['property_type'],
                 'price' => $validated['price'],
                 'currency' => $validated['currency'] ?? 'KSh',
                 'location_text' => $validated['location_text'],
@@ -150,8 +219,37 @@ class PropertyController extends Controller
                 }
             }
 
+            // Handle floor plan upload (for House/Apartment/Commercial)
+            if ($request->hasFile('floor_plan')) {
+                $floorPlanPath = $request->file('floor_plan')->store('property-floor-plans', 'public');
+                $property->update(['floor_plan_url' => $floorPlanPath]);
+                $property->update(['has_floor_plan' => true]);
+            }
+
+            // Handle 3D tour upload (for House/Apartment/Commercial)
+            if ($request->hasFile('3d_tour')) {
+                $tourPath = $request->file('3d_tour')->store('property-3d-tours', 'public');
+                $property->update(['3d_tour_url' => $tourPath]);
+                $property->update(['has_3d_tour' => true]);
+            }
+
             // Load relationships for response
-            $property->load(['images', 'amenities', 'user:id,name,email']);
+            $property->load(['images', 'amenities', 'user:id,name,email,phone']);
+            
+            // Get user's application for company name (if agent)
+            if ($property->user) {
+                $application = \App\Models\Application::where('email', $property->user->email)
+                    ->where('type', 'agent')
+                    ->where('status', 'approved')
+                    ->first();
+                if ($application && isset($application->details['agency'])) {
+                    $property->broker = $application->details['agency'];
+                } elseif (!$property->user_id) {
+                    $property->broker = 'Ashgate Portfolio';
+                } else {
+                    $property->broker = 'Direct Owner';
+                }
+            }
 
             return response()->json([
                 'message' => 'Property created successfully',
@@ -172,7 +270,7 @@ class PropertyController extends Controller
      */
     public function show($id)
     {
-        $property = Property::with(['images', 'amenities', 'user:id,name,email'])
+        $property = Property::with(['images', 'amenities', 'user:id,name,email,phone'])
             ->findOrFail($id);
 
         // Only show inactive properties to the owner or if property is active
@@ -180,6 +278,23 @@ class PropertyController extends Controller
             return response()->json([
                 'message' => 'Property not found'
             ], 404);
+        }
+
+        // Add broker/company name
+        if ($property->user) {
+            $application = \App\Models\Application::where('email', $property->user->email)
+                ->where('type', 'agent')
+                ->where('status', 'approved')
+                ->first();
+            if ($application && isset($application->details['agency'])) {
+                $property->broker = $application->details['agency'];
+            } elseif (!$property->user_id) {
+                $property->broker = 'Ashgate Portfolio';
+            } else {
+                $property->broker = 'Direct Owner';
+            }
+        } else {
+            $property->broker = 'Ashgate Portfolio';
         }
 
         // Increment view count
@@ -212,6 +327,7 @@ class PropertyController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'listing_type' => 'sometimes|required|in:sale,rent',
+            'property_type' => 'sometimes|required|string|in:House,Apartment,Commercial,Land',
             'price' => 'sometimes|required|numeric|min:0',
             'currency' => 'nullable|string|max:10',
             'location_text' => 'sometimes|required|string|max:255',
@@ -224,6 +340,8 @@ class PropertyController extends Controller
             'year_built' => 'nullable|integer|min:1800|max:' . date('Y'),
             'has_3d_tour' => 'nullable|boolean',
             'has_floor_plan' => 'nullable|boolean',
+            'floor_plan' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            '3d_tour' => 'nullable|file|mimes:mp4,mov,avi,glb,gltf|max:102400',
             'status' => 'sometimes|string|in:available,taken,pending',
             'is_active' => 'nullable|boolean',
             'amenities' => 'nullable|array',
@@ -257,8 +375,43 @@ class PropertyController extends Controller
                 }
             }
 
+            // Handle floor plan upload update
+            if ($request->hasFile('floor_plan')) {
+                // Delete old floor plan if exists
+                if ($property->floor_plan_url && Storage::disk('public')->exists($property->floor_plan_url)) {
+                    Storage::disk('public')->delete($property->floor_plan_url);
+                }
+                $floorPlanPath = $request->file('floor_plan')->store('property-floor-plans', 'public');
+                $property->update(['floor_plan_url' => $floorPlanPath, 'has_floor_plan' => true]);
+            }
+
+            // Handle 3D tour upload update
+            if ($request->hasFile('3d_tour')) {
+                // Delete old 3D tour if exists
+                if ($property->{'3d_tour_url'} && Storage::disk('public')->exists($property->{'3d_tour_url'})) {
+                    Storage::disk('public')->delete($property->{'3d_tour_url'});
+                }
+                $tourPath = $request->file('3d_tour')->store('property-3d-tours', 'public');
+                $property->update(['3d_tour_url' => $tourPath, 'has_3d_tour' => true]);
+            }
+
             // Reload relationships
-            $property->load(['images', 'amenities', 'user:id,name,email']);
+            $property->load(['images', 'amenities', 'user:id,name,email,phone']);
+            
+            // Update broker info
+            if ($property->user) {
+                $application = \App\Models\Application::where('email', $property->user->email)
+                    ->where('type', 'agent')
+                    ->where('status', 'approved')
+                    ->first();
+                if ($application && isset($application->details['agency'])) {
+                    $property->broker = $application->details['agency'];
+                } elseif (!$property->user_id) {
+                    $property->broker = 'Ashgate Portfolio';
+                } else {
+                    $property->broker = 'Direct Owner';
+                }
+            }
 
             return response()->json([
                 'message' => 'Property updated successfully',

@@ -25,6 +25,8 @@ Route::post('/set-password', [AuthController::class, 'setPassword']);
 // Public property routes (read-only for listings)
 Route::get('/properties', [PropertyController::class, 'index']);
 Route::get('/properties/{id}', [PropertyController::class, 'show']);
+Route::get('/properties/categories/counts', [PropertyController::class, 'categories']);
+Route::get('/properties/locations/list', [PropertyController::class, 'locations']);
 
 // Public expert routes
 Route::get('/experts', [ExpertController::class, 'index']);
@@ -35,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Application routes (for users to view their own application)
+    Route::get('/my-application', [ApplicationController::class, 'index']);
     
     // Property management routes
     Route::post('/properties', [PropertyController::class, 'store']);

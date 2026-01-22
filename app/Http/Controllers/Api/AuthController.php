@@ -33,20 +33,25 @@ class AuthController extends Controller
 
         // Check if user must change password
         if ($user->must_change_password) {
+            $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json([
                 'message' => 'Password change required',
                 'require_password_change' => true,
-                'user' => $user
+                'user' => $user->load('roles'),
+                'token' => $token
             ]);
         }
 
-        // Create token (assuming Sanctum is installed, or just return user for now if session based)
-        // For simplicity in this demo phase, we'll return the user object.
-        // In production, use $user->createToken('auth_token')->plainTextToken;
+        // Create Sanctum token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Load user roles
+        $user->load('roles');
 
         return response()->json([
             'message' => 'Login successful',
             'user' => $user,
+            'token' => $token,
             'require_password_change' => false
         ]);
     }
@@ -54,31 +59,53 @@ class AuthController extends Controller
     public function changePassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
             'current_password' => 'required',
             'new_password' => 'required|min:8|confirmed',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = Auth::user();
 
-        if (!$user || !Hash::check($request->current_password, $user->password)) {
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if (!Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Invalid current password'], 401);
         }
 
-        // Check limit
-        if ($user->password_change_count >= 5) {
+        // Check limit (max 4 changes)
+        if (($user->password_change_count ?? 0) >= 4) {
             $user->update(['is_active' => false]);
-            return response()->json(['message' => 'Security alert: Too many password changes. Account locked.'], 403);
+            
+            // Log the account lockout
+            activity()
+                ->causedBy($user)
+                ->performedOn($user)
+                ->withProperties(['reason' => 'password_change_limit_exceeded'])
+                ->log('Account locked due to excessive password changes');
+            
+            return response()->json([
+                'message' => 'Security alert: You have exceeded the maximum number of password changes (4). Your account has been locked for security reasons. Please contact Ashgate administrators at info@ashgate.co.ke to unlock your account.',
+                'account_locked' => true
+            ], 403);
         }
 
+        // Update password with SHA-256 hashing (Laravel's Hash::make uses bcrypt by default, but we can configure it)
         $user->update([
             'password' => Hash::make($request->new_password),
             'must_change_password' => false,
             'password_changed_at' => now(),
-            'password_change_count' => $user->password_change_count + 1,
+            'password_change_count' => ($user->password_change_count ?? 0) + 1,
         ]);
 
-        return response()->json(['message' => 'Password updated successfully. Please log in.']);
+        // Log password change activity
+        activity()
+            ->causedBy($user)
+            ->performedOn($user)
+            ->withProperties(['ip' => $request->ip()])
+            ->log('Password changed');
+
+        return response()->json(['message' => 'Password updated successfully.']);
     }
 
     public function forgotPassword(Request $request)

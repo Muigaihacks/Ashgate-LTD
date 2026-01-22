@@ -98,6 +98,11 @@ export default function HomeownerDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   const [language] = useState('English');
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [propertyFiles, setPropertyFiles] = useState<Record<string, { photos: File[], videos: File[], floorPlan?: File, tour3D?: File }>>({});
+  const [userData, setUserData] = useState<any>(null);
+  const [userApplication, setUserApplication] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
   const formatNumberWithCommas = (value: string) => {
     if (!value) return '';
@@ -106,16 +111,84 @@ export default function HomeownerDashboard() {
     return new Intl.NumberFormat('en-US').format(Number(numeric));
   };
 
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const userStr = localStorage.getItem('ashgate_user');
+      const token = localStorage.getItem('ashgate_auth_token');
+      
+      if (!userStr || !token) {
+        router.push('/?login=true');
+        return;
+      }
+      
+      // Verify token is still valid
+      try {
+        const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        });
+        
+        if (!verifyResponse.ok) {
+          // Token invalid, clear and redirect
+          localStorage.removeItem('ashgate_auth_token');
+          localStorage.removeItem('ashgate_user');
+          router.push('/?login=true');
+          return;
+        }
+      } catch (error) {
+        console.error('Token verification error:', error);
+        router.push('/?login=true');
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      setUserData(user);
+      
+      // Fetch application details
+      try {
+        const token = localStorage.getItem('ashgate_auth_token');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/my-application`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        });
+        if (response.ok) {
+          const userApp = await response.json();
+          setUserApplication(userApp);
+        }
+      } catch (error) {
+        console.error('Error fetching application:', error);
+      }
+    };
+    
+    fetchUserData();
+  }, [router]);
+
   const selectedProperty = selectedPropertyId
     ? properties.find((p) => p.id === selectedPropertyId) ?? null
     : null;
 
   const handlePhotoUpload = (propertyId: string, files: FileList | null) => {
     if (!files) return;
-
+    const fileArray = Array.from(files);
+    
+    // Store actual File objects
+    setPropertyFiles(prev => ({
+      ...prev,
+      [propertyId]: {
+        ...prev[propertyId],
+        photos: [...(prev[propertyId]?.photos || []), ...fileArray]
+      }
+    }));
+    
+    // Also update preview URLs for UI
     setIsUploading(true);
     setTimeout(() => {
-      const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
+      const newPhotos = fileArray.map(file => URL.createObjectURL(file));
       setProperties(prev => prev.map(p => 
         p.id === propertyId 
           ? { ...p, photos: [...p.photos, ...newPhotos] }
@@ -127,10 +200,21 @@ export default function HomeownerDashboard() {
 
   const handleVideoUpload = (propertyId: string, files: FileList | null) => {
     if (!files) return;
-
+    const fileArray = Array.from(files);
+    
+    // Store actual File objects
+    setPropertyFiles(prev => ({
+      ...prev,
+      [propertyId]: {
+        ...prev[propertyId],
+        videos: [...(prev[propertyId]?.videos || []), ...fileArray]
+      }
+    }));
+    
+    // Also update preview URLs for UI
     setIsUploading(true);
     setTimeout(() => {
-      const newVideos = Array.from(files).map(file => URL.createObjectURL(file));
+      const newVideos = fileArray.map(file => URL.createObjectURL(file));
       setProperties(prev => prev.map(p => 
         p.id === propertyId 
           ? { ...p, videos: [...p.videos, ...newVideos] }
@@ -198,6 +282,152 @@ export default function HomeownerDashboard() {
         ? { ...p, amenities: { ...p.amenities, [amenity]: !p.amenities[amenity] } }
         : p
     ));
+  };
+
+  const handleSaveProperty = async (propertyId: string) => {
+    const property = properties.find(p => p.id === propertyId);
+    if (!property) return;
+
+    // Validation
+    if (!property.address || !property.location || !property.price) {
+      alert('Please fill in all required fields: Address, Location, and Price');
+      return;
+    }
+
+    const userStr = localStorage.getItem('ashgate_user');
+    if (!userStr) {
+      alert('Please log in to save listings');
+      router.push('/?login=true');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Map amenities to IDs
+      const amenityNameToId: Record<string, number> = {
+        wifi: 1,
+        washingMachine: 2,
+        backupPower: 3,
+        security: 4,
+        gym: 5,
+        pool: 6,
+        dishwasher: 7,
+      };
+
+      const selectedAmenities = Object.entries(property.amenities)
+        .filter(([_, selected]) => selected)
+        .map(([key]) => amenityNameToId[key])
+        .filter(Boolean);
+
+      const formData = new FormData();
+      formData.append('title', property.address);
+      formData.append('description', property.description || '');
+      formData.append('listing_type', property.listingType);
+      formData.append('property_type', property.propertyType);
+      formData.append('price', property.price.replace(/,/g, ''));
+      formData.append('location_text', property.location);
+      if (property.lat) formData.append('latitude', property.lat);
+      if (property.lng) formData.append('longitude', property.lng);
+      formData.append('beds', property.beds.na ? '0' : (property.beds.value || '0'));
+      formData.append('baths', property.baths.na ? '0' : (property.baths.value || '0'));
+      formData.append('parking_spaces', property.parking.na ? '0' : (property.parking.value || '0'));
+      formData.append('area_sqm', property.area.na ? '0' : (property.area.value || '0'));
+      formData.append('status', property.status.toLowerCase());
+      formData.append('is_active', 'true');
+
+      // Add amenities
+      selectedAmenities.forEach(id => formData.append('amenities[]', id.toString()));
+
+      // Add photos
+      const files = propertyFiles[propertyId];
+      if (files?.photos) {
+        files.photos.forEach(photo => formData.append('photos[]', photo));
+      }
+
+      // Add floor plan and 3D tour if property type supports it
+      if (['House', 'Apartment', 'Commercial'].includes(property.propertyType)) {
+        if (files?.floorPlan) {
+          formData.append('floor_plan', files.floorPlan);
+          formData.append('has_floor_plan', 'true');
+        }
+        if (files?.tour3D) {
+          formData.append('3d_tour', files.tour3D);
+          formData.append('has_3d_tour', 'true');
+        }
+      }
+
+      const token = localStorage.getItem('ashgate_auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert('Listing saved successfully! It will appear on the listings page shortly.');
+      } else {
+        alert('Failed to save listing: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Error saving listing. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      alert('Password must be at least 8 characters long');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('ashgate_auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          current_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword,
+          new_password_confirmation: passwordData.confirmPassword,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert('Password updated successfully!');
+        setShowPasswordModal(false);
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        if (data.account_locked) {
+          alert(data.message);
+          localStorage.removeItem('ashgate_auth_token');
+          localStorage.removeItem('ashgate_user');
+          router.push('/?login=true');
+        } else {
+          alert(data.message || 'Failed to update password');
+        }
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      alert('Error changing password. Please try again.');
+    }
   };
 
   return (
@@ -896,6 +1126,60 @@ export default function HomeownerDashboard() {
                             <p className="text-xs text-gray-500 mt-2">These amenities appear on the detailed listing page for increased buyer confidence.</p>
                           </div>
 
+                          {/* Floor Plan & 3D Tour (only for House/Apartment/Commercial) */}
+                          {['House', 'Apartment', 'Commercial'].includes(property.propertyType) && (
+                            <div className="space-y-4 border-t border-gray-200 pt-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Floor Plan (Optional)
+                                </label>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setPropertyFiles(prev => ({
+                                        ...prev,
+                                        [property.id]: { ...prev[property.id], floorPlan: file }
+                                      }));
+                                    }
+                                  }}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Accepted: PDF, JPG, PNG (Max 10MB)</p>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  3D Tour (Optional)
+                                </label>
+                                <input
+                                  type="file"
+                                  accept=".mp4,.mov,.avi,.glb,.gltf"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setPropertyFiles(prev => ({
+                                        ...prev,
+                                        [property.id]: { ...prev[property.id], tour3D: file }
+                                      }));
+                                    }
+                                  }}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Accepted: MP4, MOV, AVI, GLB, GLTF (Max 100MB)
+                                </p>
+                                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <p className="text-xs text-blue-800">
+                                    <strong>Don't have a 3D tour?</strong> We can help create one for your listing at your cost. 
+                                    Contact us at <a href="mailto:info@ashgate.co.ke" className="underline font-semibold">info@ashgate.co.ke</a>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                             <textarea
@@ -907,8 +1191,12 @@ export default function HomeownerDashboard() {
                               placeholder="Highlight unique selling points, finishes, neighbourhood perks..."
                             />
                           </div>
-                          <button className="w-full md:w-auto px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
-                            Save Property Information
+                          <button 
+                            onClick={() => handleSaveProperty(property.id)}
+                            disabled={isSaving}
+                            className="w-full md:w-auto px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSaving ? 'Saving...' : 'Save Property Information'}
                           </button>
                         </div>
                       </div>
@@ -931,29 +1219,40 @@ export default function HomeownerDashboard() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowPasswordModal(false); alert('Password updated successfully!'); }}>
+            <form className="space-y-4" onSubmit={handlePasswordChange}>
               <div>
                 <label className="block text-sm font-medium mb-1">Current Password</label>
                 <input 
                   type="password" 
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
                   placeholder="Enter current password"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">New Password</label>
                 <input 
                   type="password" 
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-                  placeholder="Enter new password"
+                  placeholder="Enter new password (min 8 characters)"
+                  minLength={8}
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Confirm New Password</label>
                 <input 
                   type="password" 
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
                   placeholder="Confirm new password"
+                  minLength={8}
+                  required
                 />
               </div>
               <div className="flex justify-end gap-3 mt-6">
@@ -986,94 +1285,58 @@ export default function HomeownerDashboard() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowProfileModal(false); alert('Profile updated successfully!'); }}>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="relative group cursor-pointer">
-                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary-500 transition-colors">
-                    {selectedAvatar ? (
-                      <img src={selectedAvatar} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
+            <div className="space-y-4">
+              {userData && (
+                <>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border-2 border-primary-500">
                       <User className="w-10 h-10 text-gray-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">{userData.name}</h4>
+                      <p className="text-sm text-gray-500">{userData.email}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Full Name</label>
+                      <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                        {userData.name}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Phone</label>
+                      <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                        {userData.phone || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email Address</label>
+                      <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                        {userData.email}
+                      </div>
+                    </div>
+                    {userApplication && userApplication.type === 'owner' && userApplication.details?.address && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Property Address</label>
+                        <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                          {userApplication.details.address}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white text-xs font-medium">Edit</span>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">Profile Photo</h4>
-                  <div className="flex gap-2 mt-2">
-                    {[1, 2, 3, 4].map((i) => {
-                      const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`;
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          className="w-8 h-8 rounded-full bg-gray-100 hover:ring-2 hover:ring-primary-500 transition-all overflow-hidden"
-                          onClick={() => setSelectedAvatar(avatarUrl)}
-                        >
-                          <img 
-                            src={avatarUrl} 
-                            alt={`Avatar ${i}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Full Name</label>
-                  <input 
-                    type="text" 
-                    defaultValue="John Doe"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Phone</label>
-                  <input 
-                    type="tel" 
-                    defaultValue="+254 712 345 678"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email Address</label>
-                <input 
-                  type="email" 
-                  defaultValue="john.doe@example.com"
-                  readOnly
-                  className={`w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Bio / Company Name</label>
-                <textarea 
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-                  placeholder="Tell us about yourself or your company..."
-                ></textarea>
-              </div>
+                </>
+              )}
               <div className="flex justify-end gap-3 mt-6">
                 <button 
                   type="button"
                   onClick={() => setShowProfileModal(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
-                >
-                  Save Changes
+                  Close
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

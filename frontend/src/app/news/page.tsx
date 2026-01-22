@@ -1,36 +1,33 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User, ArrowRight, FileText } from 'lucide-react';
 
-const articles = [
-  { 
-    slug: 'plant-trees-on-idle-land', 
-    title: 'Plant trees on idle land: species by Kenyan region', 
-    excerpt: 'A practical guide on what to plant and where for long-term value.', 
-    date: 'Oct 30, 2025', 
-    author: 'Ashgate Editorial',
-    category: 'Land Development'
-  },
-  { 
-    slug: 'buying-process-checklist', 
-    title: 'Buying land or a home: step-by-step checklist', 
-    excerpt: 'From due diligence to transfer—what to expect and how to prepare.', 
-    date: 'Oct 29, 2025', 
-    author: 'Legal Desk',
-    category: 'Legal'
-  },
-  { 
-    slug: 'solar-payback', 
-    title: 'Solar for homes: costs, payback and incentives', 
-    excerpt: 'When solar makes sense and how to choose the right system size.', 
-    date: 'Oct 28, 2025', 
-    author: 'Energy Desk',
-    category: 'Sustainability'
-  },
-];
+// Articles will be loaded from API/admin panel
+const articles: any[] = [];
 
 export default function NewsPage() {
+  const [articlesList, setArticlesList] = useState<any[]>([]);
+
+  // Fetch articles from API
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        // TODO: Add news API endpoint when ready
+        // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/news`);
+        // if (response.ok) {
+        //   const data = await response.json();
+        //   setArticlesList(data.data || []);
+        // }
+        setArticlesList([]); // Empty for now - will be populated from admin panel
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+      }
+    };
+    fetchArticles();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
       {/* Decorative Background Pattern */}
@@ -59,7 +56,8 @@ export default function NewsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {articles.map((a) => (
+          {articlesList.length > 0 ? (
+            articlesList.map((a: any) => (
             <Link 
               key={a.slug} 
               href={`/news/${a.slug}`} 
@@ -102,7 +100,14 @@ export default function NewsPage() {
                 </div>
               </div>
             </Link>
-          ))}
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">No articles available yet.</p>
+              <p className="text-gray-400 text-sm mt-2">News articles will be displayed here once they are added through the admin panel.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

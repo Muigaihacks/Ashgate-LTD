@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Google reCAPTCHA (used to protect agent & property owner registrations)
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret' => env('RECAPTCHA_SECRET_KEY'),
+    ],
+
 ];

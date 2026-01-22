@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Hammer, Sun, Trees, Gavel, Truck, Camera, Paintbrush, Search, ArrowLeft, Newspaper } from 'lucide-react';
 
@@ -16,23 +16,33 @@ const categories = [
   { key: 'property-manager', name: 'Property Managers', icon: Users },
 ];
 
-const experts = [
-  { name: 'Apex Conveyancers LLP', category: 'legal', location: 'Nairobi', tagline: 'Property transfers, due diligence & titles', rating: 4.8 },
-  { name: 'SunGrid Solar', category: 'solar', location: 'Kiambu', tagline: 'Solar PV installs and backup power', rating: 4.7 },
-  { name: 'GreenEdge Landscapes', category: 'landscaping', location: 'Ruiru', tagline: 'Hardscape, lawns & irrigation', rating: 4.6 },
-  { name: 'SwiftMove Logistics', category: 'movers', location: 'Nairobi', tagline: 'Home and office moves', rating: 4.5 },
-  { name: 'PaveMaster Cabro', category: 'cabro', location: 'Thika', tagline: 'Driveways, walkways & compounds', rating: 4.7 },
-  { name: 'Focus Realty Shots', category: 'photography', location: 'Westlands', tagline: 'Property photos, video & 3D scans', rating: 4.9 },
-  { name: 'Atelier Interiors', category: 'interior', location: 'Kilimani', tagline: 'Furnishing and staging', rating: 4.6 },
-];
+// Experts will be loaded from API
+const experts: any[] = [];
 
 export default function CommunityPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<string>('');
   const [query, setQuery] = useState('');
+  const [expertsList, setExpertsList] = useState<any[]>([]);
 
-  const filtered = experts.filter((e) => (filter ? e.category === filter : true))
-    .filter((e) => (query ? (e.name.toLowerCase().includes(query.toLowerCase()) || e.location.toLowerCase().includes(query.toLowerCase())) : true));
+  // Fetch experts from API
+  useEffect(() => {
+    const fetchExperts = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/experts`);
+        if (response.ok) {
+          const data = await response.json();
+          setExpertsList(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching experts:', error);
+      }
+    };
+    fetchExperts();
+  }, []);
+
+  const filtered = expertsList.filter((e: any) => (filter ? e.details?.profession === filter : true))
+    .filter((e: any) => (query ? (e.name?.toLowerCase().includes(query.toLowerCase()) || e.details?.location?.toLowerCase().includes(query.toLowerCase())) : true));
 
   return (
     <div className="min-h-screen bg-white">
@@ -75,18 +85,24 @@ export default function CommunityPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((e, idx) => (
-            <div key={idx} className="bg-white rounded-xl border shadow-sm hover:shadow-lg transition-shadow p-5">
-              <div className="text-sm text-gray-500 mb-1">{categories.find(c=>c.key===e.category)?.name}</div>
-              <h3 className="text-lg font-semibold text-gray-900">{e.name}</h3>
-              <p className="text-gray-600 text-sm">{e.tagline}</p>
-              <div className="text-gray-500 text-sm mt-2">{e.location} • ⭐ {e.rating}</div>
-              <div className="mt-4 flex gap-2">
-                <button className="px-4 py-2 rounded-lg bg-primary-600 text-white">Contact</button>
-                <button className="px-4 py-2 rounded-lg border text-black">View Profile</button>
+          {filtered.length > 0 ? (
+            filtered.map((e: any, idx: number) => (
+              <div key={idx} className="bg-white rounded-xl border shadow-sm hover:shadow-lg transition-shadow p-5">
+                <div className="text-sm text-gray-500 mb-1">{categories.find(c=>c.key===e.details?.profession)?.name || e.details?.profession}</div>
+                <h3 className="text-lg font-semibold text-gray-900">{e.name}</h3>
+                <p className="text-gray-600 text-sm">{e.details?.bio || 'Professional service provider'}</p>
+                <div className="text-gray-500 text-sm mt-2">{e.details?.location || 'Nairobi'} • Verified Expert</div>
+                <div className="mt-4 flex gap-2">
+                  <a href={`mailto:${e.email}`} className="px-4 py-2 rounded-lg bg-primary-600 text-white">Contact</a>
+                  <button className="px-4 py-2 rounded-lg border text-black">View Profile</button>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500">No experts available yet. Experts will be displayed here once they are approved through the admin panel.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

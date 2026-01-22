@@ -12,28 +12,45 @@ export default function ListingsPage() {
   const [query, setQuery] = useState(params.get('search') || '');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(params.get('category') || '');
+  const [location, setLocation] = useState(params.get('location') || '');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selected, setSelected] = useState<any|null>(null);
   const [allListings, setAllListings] = useState<any[]>([]);
 
   useEffect(() => {
-    const data = (window as any).__ASHGATE_LISTINGS__;
-    if (Array.isArray(data)) setAllListings(data);
-  }, []);
+    const fetchListings = async () => {
+      try {
+        const params = new URLSearchParams();
+        params.append('listing_type', type);
+        if (category) params.append('category', category);
+        if (location) params.append('location', location);
+        if (query) params.append('search', query);
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAllListings(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        // Fallback to window data if API fails
+        const data = (window as any).__ASHGATE_LISTINGS__;
+        if (Array.isArray(data)) setAllListings(data);
+      }
+    };
+    fetchListings();
+  }, [type, category, location, query]);
 
   const items = useMemo(() => {
     return allListings
-      .filter((l: any) => (l.listingType === type))
-      .filter((l: any) => (query ? (l.title?.toLowerCase().includes(query.toLowerCase()) || l.location?.toLowerCase().includes(query.toLowerCase())) : true))
-      .filter((l: any) => (category ? l.category === category : true))
       .filter((l: any) => {
         const priceNum = parseInt(String(l.price).replace(/[^0-9]/g, ''), 10) || 0;
         const min = minPrice ? parseInt(minPrice, 10) : 0;
         const max = maxPrice ? parseInt(maxPrice, 10) : Infinity;
         return priceNum >= min && priceNum <= max;
       });
-  }, [allListings, type, query, minPrice, maxPrice, category]);
+  }, [allListings, minPrice, maxPrice]);
 
   const [page, setPage] = useState(1);
   const pageSize = 9;

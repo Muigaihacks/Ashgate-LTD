@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Upload, FileText, X, Users, Award } from 'lucide-react';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 export default function ExpertRegistrationPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function ExpertRegistrationPage() {
     email: '',
     phone: '',
     profession: '',
+    customProfession: '',
     serialNumber: '',
     professionalBoard: '',
     yearsOfExperience: '',
@@ -20,6 +22,7 @@ export default function ExpertRegistrationPage() {
   });
   const [uploadedDocuments, setUploadedDocuments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -51,6 +54,10 @@ export default function ExpertRegistrationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaToken) {
+      alert('Please complete the CAPTCHA to confirm you are not a bot.');
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -59,11 +66,12 @@ export default function ExpertRegistrationPage() {
       formDataToSend.append('lastName', formData.lastName);
       formDataToSend.append('email', formData.email);
       formDataToSend.append('phone', formData.phone);
-      formDataToSend.append('profession', formData.profession);
+      formDataToSend.append('profession', formData.profession === 'other' ? formData.customProfession : formData.profession);
       formDataToSend.append('yearsOfExperience', formData.yearsOfExperience);
       formDataToSend.append('serialNumber', formData.serialNumber);
       formDataToSend.append('professionalBoard', formData.professionalBoard);
       formDataToSend.append('bio', formData.bio);
+      formDataToSend.append('recaptchaToken', captchaToken);
       
       uploadedDocuments.forEach((file) => {
         formDataToSend.append('documents[]', file);
@@ -226,6 +234,23 @@ export default function ExpertRegistrationPage() {
                   <option value="surveyor">Quantity Surveyor</option>
                   <option value="other">Other</option>
                 </select>
+                {formData.profession === 'other' && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Specify Category <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="customProfession"
+                      value={formData.customProfession}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 !text-gray-900"
+                      style={{ color: '#111827' }}
+                      placeholder="Enter your profession category"
+                      required
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -360,21 +385,31 @@ export default function ExpertRegistrationPage() {
           </div>
 
           {/* Submit Button */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Application'}
-            </button>
+          <div className="pt-4 border-t border-gray-200 space-y-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2">
+                <ReCAPTCHA
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+                  onChange={(token) => setCaptchaToken(token)}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </div>
           </div>
         </form>
       </div>

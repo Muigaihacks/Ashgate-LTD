@@ -133,7 +133,20 @@ class PropertyResource extends Resource
                 Forms\Components\Section::make('Settings')
                     ->schema([
                         Forms\Components\Toggle::make('is_featured')
-                            ->label('Featured Property'),
+                            ->label('Featured Property')
+                            ->helperText('Only 10 listings can be featured at a time')
+                            ->afterStateUpdated(function ($state, $set, $get) {
+                                if ($state) {
+                                    $featuredCount = \App\Models\Property::where('is_featured', true)
+                                        ->whereNull('user_id') // Only count Ashgate portfolio listings
+                                        ->where('id', '!=', $get('id'))
+                                        ->count();
+                                    if ($featuredCount >= 10) {
+                                        $set('is_featured', false);
+                                        throw new \Filament\Notifications\Notification();
+                                    }
+                                }
+                            }),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Visible on Site')
                             ->default(true),

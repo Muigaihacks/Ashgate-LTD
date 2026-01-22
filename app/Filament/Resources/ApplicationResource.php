@@ -213,10 +213,11 @@ class ApplicationResource extends Resource
                             $roleName = match($record->type) {
                                 'owner' => 'property_owner',
                                 'agent' => 'agent',
-                                'expert' => 'expert', // Ensure this role exists if needed
-                                default => 'general'
+                                default => null,
                             };
-                            $existingUser->assignRole($roleName);
+                            if ($roleName) {
+                                $existingUser->assignRole($roleName);
+                            }
                             
                             return;
                         }
@@ -238,11 +239,12 @@ class ApplicationResource extends Resource
                         $roleName = match($record->type) {
                             'owner' => 'property_owner',
                             'agent' => 'agent',
-                            'expert' => 'expert', // Future proofing
-                            default => 'general'
+                            default => null,
                         };
                         
-                        $user->assignRole($roleName);
+                        if ($roleName) {
+                            $user->assignRole($roleName);
+                        }
 
                         // 5. Generate password setup token (using Laravel's password reset system)
                         $token = Password::createToken($user);

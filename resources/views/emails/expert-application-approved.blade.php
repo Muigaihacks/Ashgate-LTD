@@ -18,7 +18,7 @@
         <p><strong>What happens next?</strong></p>
         <p>Your profile is now visible to thousands of homeowners and investors looking for trusted professionals like you. You may start receiving inquiries directly via the contact details you provided.</p>
         
-        <p>If you need to update your profile details in the future, please contact our support team at <a href="mailto:support@ashgate.co.ke">support@ashgate.co.ke</a>.</p>
+        <p>If you need to update your profile details in the future, please contact our support team at <a href="mailto:info@ashgate.co.ke">info@ashgate.co.ke</a> or call +254 700 580 379.</p>
         
         <p>Thank you for being part of the Ashgate ecosystem.</p>
         
@@ -26,6 +26,10 @@
         The Ashgate Team</p>
         
         <div style="margin-top: 30px; font-size: 12px; color: #666; text-align: center;">
+            <p><strong>Ashgate Limited</strong><br>
+            Nairobi, Kenya<br>
+            Phone: +254 700 580 379<br>
+            Email: info@ashgate.co.ke</p>
             <p>&copy; {{ date('Y') }} Ashgate Limited. All rights reserved.</p>
         </div>
     </div>

@@ -20,13 +20,19 @@
         </p>
         
         <p style="font-size: 14px; color: #666;">
-            This link will expire in 24 hours. If you have any issues, please contact our support team.
+            This link will expire in 24 hours. If you have any issues, please contact us at <a href="mailto:info@ashgate.co.ke">info@ashgate.co.ke</a> or call +254 700 580 379.
         </p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         
         <p style="font-size: 12px; color: #666;">
-            If you did not request this account, please contact our support team immediately.
+            If you did not request this account, please contact our support team immediately at <a href="mailto:info@ashgate.co.ke">info@ashgate.co.ke</a>.
+        </p>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+            <strong>Ashgate Limited</strong><br>
+            Nairobi, Kenya<br>
+            Phone: +254 700 580 379<br>
+            Email: info@ashgate.co.ke
         </p>
     </div>
 </body>

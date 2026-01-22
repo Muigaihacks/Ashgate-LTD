@@ -16,7 +16,7 @@ class UserListingResource extends Resource
     protected static ?string $model = Property::class; // Reuse the Property model
 
     protected static ?string $navigationIcon = 'heroicon-o-home-modern';
-    protected static ?string $navigationGroup = 'Property Management';
+    protected static ?string $navigationGroup = 'Listings Management';
     protected static ?string $navigationLabel = 'User Listings';
     protected static ?string $slug = 'user-listings'; // Unique slug
     protected static ?int $navigationSort = 1;
@@ -90,7 +90,8 @@ class UserListingResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Moderate'),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Remove Listing'),
+                    ->label('Remove Listing')
+                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

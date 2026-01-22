@@ -39,11 +39,17 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
+  const [locations, setLocations] = useState<string[]>([]);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [filteredLocations, setFilteredLocations] = useState<string[]>([]);
   const [currentIconIndex, setCurrentIconIndex] = useState(0);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -89,9 +95,11 @@ export default function HomePage() {
   // Agent Form State
   const [agentData, setAgentData] = useState({ firstName: '', lastName: '', email: '', phone: '', agency: '', about: '' });
   const [agentDocs, setAgentDocs] = useState<File[]>([]);
+  const [agentCaptchaToken, setAgentCaptchaToken] = useState<string | null>(null);
 
   // Owner Form State
   const [ownerData, setOwnerData] = useState({ firstName: '', lastName: '', email: '', phone: '', address: '', reason: '', agreeViewing: false });
+  const [ownerCaptchaToken, setOwnerCaptchaToken] = useState<string | null>(null);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,15 +112,34 @@ export default function HomePage() {
         });
         const data = await res.json();
         if (res.ok) {
+            // Store token and user data
+            if (data.token) {
+              localStorage.setItem('ashgate_auth_token', data.token);
+            }
+            localStorage.setItem('ashgate_user', JSON.stringify(data.user));
+            
             setIsUserLoggedIn(true);
             setUserName(data.user.name);
-            // Derive type from backend roles if possible, or default
-            setUserType('homeowner'); 
+            
+            // Derive type from backend roles
+            const userRoles = data.user?.roles || [];
+            let userTypeValue: 'homeowner' | 'agent' | 'landlord' | 'tenant' | null = 'homeowner';
+            
+            if (userRoles.some((r: any) => r.name === 'agent')) {
+              userTypeValue = 'agent';
+            } else if (userRoles.some((r: any) => r.name === 'property_owner')) {
+              userTypeValue = 'homeowner';
+            }
+            
+            setUserType(userTypeValue);
             setIsSignInOpen(false);
             setSignInData({ email: '', password: '' });
+            
             if (data.require_password_change) {
                 alert('Please change your password.');
-                // Here you would redirect to change password page or open modal
+                // Redirect to appropriate dashboard where they can change password
+                const dashboardPath = userTypeValue === 'agent' ? '/dashboard/agent' : '/dashboard/homeowner';
+                router.push(dashboardPath);
             }
         } else {
             alert(data.message || 'Login failed');
@@ -146,6 +173,11 @@ export default function HomePage() {
 
   const handleAgentSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      if (!agentCaptchaToken) {
+          alert('Please complete the CAPTCHA to confirm you are not a bot.');
+          return;
+      }
+
       setIsSubmitting(true);
       const formData = new FormData();
       formData.append('firstName', agentData.firstName);
@@ -157,6 +189,7 @@ export default function HomePage() {
       formData.append('serialNumber', 'PENDING');
       formData.append('professionalBoard', agentData.agency); // Mapping agency to board field for now
       formData.append('bio', agentData.about);
+      formData.append('recaptchaToken', agentCaptchaToken);
       agentDocs.forEach(file => formData.append('documents[]', file));
 
       try {
@@ -168,6 +201,7 @@ export default function HomePage() {
           if (res.ok) {
               alert('Application submitted successfully!');
               setIsAgentOpen(false);
+              setAgentCaptchaToken(null);
           } else {
               const d = await res.json();
               alert('Submission failed: ' + (d.message || JSON.stringify(d.errors)));
@@ -181,6 +215,11 @@ export default function HomePage() {
 
   const handleOwnerSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      if (!ownerCaptchaToken) {
+          alert('Please complete the CAPTCHA to confirm you are not a bot.');
+          return;
+      }
+
       setIsSubmitting(true);
       const formData = new FormData();
       formData.append('firstName', ownerData.firstName);
@@ -192,6 +231,7 @@ export default function HomePage() {
       formData.append('serialNumber', 'N/A');
       formData.append('professionalBoard', 'N/A');
       formData.append('bio', `Address: ${ownerData.address}. Reason: ${ownerData.reason}. Agreed to viewing: ${ownerData.agreeViewing}`);
+      formData.append('recaptchaToken', ownerCaptchaToken);
 
       try {
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications`, {
@@ -202,6 +242,7 @@ export default function HomePage() {
           if (res.ok) {
               alert('Application submitted successfully!');
               setIsPropertyOwnerOpen(false);
+              setOwnerCaptchaToken(null);
           } else {
               const d = await res.json();
               alert('Submission failed: ' + (d.message || JSON.stringify(d.errors)));
@@ -344,12 +385,64 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [realEstateIcons.length]);
 
-  const propertyTypes = [
-    { icon: <HomeIcon className="w-8 h-8" />, label: 'Houses', count: '1,234' },
-    { icon: <Building2 className="w-8 h-8" />, label: 'Apartments', count: '856' },
-    { icon: <Trees className="w-8 h-8" />, label: 'Land', count: '2,145' },
-    { icon: <Landmark className="w-8 h-8" />, label: 'Commercial', count: '423' },
-  ];
+  const [propertyTypes, setPropertyTypes] = useState([
+    { icon: <HomeIcon className="w-8 h-8" />, label: 'Houses', count: '0' },
+    { icon: <Building2 className="w-8 h-8" />, label: 'Apartments', count: '0' },
+    { icon: <Trees className="w-8 h-8" />, label: 'Land', count: '0' },
+    { icon: <Landmark className="w-8 h-8" />, label: 'Commercial', count: '0' },
+  ]);
+
+  // Fetch category counts and locations on mount
+  useEffect(() => {
+    const fetchCategoryCounts = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/categories/counts`);
+        if (response.ok) {
+          const data = await response.json();
+          const counts: Record<string, number> = {};
+          data.data.forEach((item: any) => {
+            counts[item.name] = item.count;
+          });
+          
+          setPropertyTypes(prev => prev.map(type => ({
+            ...type,
+            count: counts[type.label] ? new Intl.NumberFormat('en-US').format(counts[type.label]) : '0'
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching category counts:', error);
+      }
+    };
+
+    const fetchLocations = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/locations/list`);
+        if (response.ok) {
+          const data = await response.json();
+          setLocations(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+      }
+    };
+
+    fetchCategoryCounts();
+    fetchLocations();
+  }, []);
+
+  // Filter locations based on input
+  useEffect(() => {
+    if (searchLocation) {
+      const filtered = locations.filter(loc => 
+        loc.toLowerCase().includes(searchLocation.toLowerCase())
+      );
+      setFilteredLocations(filtered.slice(0, 10));
+      setShowLocationDropdown(true);
+    } else {
+      setFilteredLocations([]);
+      setShowLocationDropdown(false);
+    }
+  }, [searchLocation, locations]);
 
   // Featured listings data (stubbed for now). Wire to backend later.
   const featuredListings = [
@@ -518,11 +611,22 @@ export default function HomePage() {
     }
   }, [featuredListings]);
 
-  // Cookie banner visibility - show every time page loads
+  // Cookie banner visibility - show every time page loads (unless user is navigating to dashboard)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Always show cookie banner on page load
-    setShowCookieBanner(true);
+    
+    // Check if user is navigating to dashboard - don't show cookie banner
+    const path = window.location.pathname;
+    if (path.startsWith('/dashboard')) {
+      setShowCookieBanner(false);
+      return;
+    }
+    
+    // Check if cookie consent already given
+    const consent = localStorage.getItem('ashgate_cookie_consent');
+    if (!consent) {
+      setShowCookieBanner(true);
+    }
   }, []);
 
   const acceptCookies = () => {
@@ -940,12 +1044,27 @@ export default function HomePage() {
                     {userType && (
                       <button 
                         onClick={() => {
-                          const dashboardPath = userType === 'homeowner' ? '/dashboard/homeowner' 
-                            : userType === 'agent' ? '/dashboard/agent'
-                            : userType === 'landlord' ? '/dashboard/landlord'
-                            : '/dashboard/tenant';
-                          router.push(dashboardPath);
-                          setIsProfileDropdownOpen(true);
+                          setIsProfileDropdownOpen(false);
+                          // Get user type from localStorage
+                          const userStr = localStorage.getItem('ashgate_user');
+                          const token = localStorage.getItem('ashgate_auth_token');
+                          
+                          if (userStr && token) {
+                            const user = JSON.parse(userStr);
+                            const userRoles = user.roles || [];
+                            let dashboardPath = '/dashboard/homeowner'; // default
+                            
+                            if (userRoles.some((r: any) => r.name === 'agent')) {
+                              dashboardPath = '/dashboard/agent';
+                            } else if (userRoles.some((r: any) => r.name === 'property_owner')) {
+                              dashboardPath = '/dashboard/homeowner';
+                            }
+                            
+                            // Navigate to dashboard
+                            window.location.href = dashboardPath;
+                          } else {
+                            router.push('/?login=true');
+                          }
                         }}
                         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-primary-700 bg-primary-100 hover:bg-primary-200 transition-colors"
                       >
@@ -1111,33 +1230,80 @@ export default function HomePage() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                     <input
                       type="text"
                       placeholder="What are you looking for?"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 !text-gray-900 placeholder-gray-500"
+                      value={searchCategory}
+                      readOnly
+                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 !text-gray-900 placeholder-gray-500 cursor-pointer"
                       style={{ color: '#111827' }}
                     />
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    {showCategoryDropdown && (
+                      <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <button
+                          onClick={() => {
+                            setSearchCategory('');
+                            setShowCategoryDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                        >
+                          All Categories
+                        </button>
+                        {['House', 'Apartment', 'Land', 'Commercial'].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              setSearchCategory(cat);
+                              setShowCategoryDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex-1">
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                     <input
                       type="text"
                       placeholder="Where?"
                       value={searchLocation}
                       onChange={(e) => setSearchLocation(e.target.value)}
+                      onFocus={() => setShowLocationDropdown(true)}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 !text-gray-900 placeholder-gray-500"
                       style={{ color: '#111827' }}
                     />
+                    {showLocationDropdown && filteredLocations.length > 0 && (
+                      <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        {filteredLocations.map((loc, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setSearchLocation(loc);
+                              setShowLocationDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                          >
+                            {loc}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button onClick={() => {
-                  const q = [searchQuery, searchLocation].filter(Boolean).join(' ');
-                  router.push(`/listings?type=sale&search=${encodeURIComponent(q)}`);
+                  const params = new URLSearchParams();
+                  if (searchCategory) params.append('category', searchCategory);
+                  if (searchLocation) params.append('location', searchLocation);
+                  if (searchQuery) params.append('search', searchQuery);
+                  router.push(`/listings?type=sale&${params.toString()}`);
                 }} className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold flex items-center justify-center transition-colors duration-200">
                   Search
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -1501,25 +1667,10 @@ export default function HomePage() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center">
-            {/* Partner Logos - Placeholder for now */}
-            <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-center h-20">
-              <span className="text-gray-400 font-semibold text-sm">Safaricom</span>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-center h-20">
-              <span className="text-gray-400 font-semibold text-sm">KCB Bank</span>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-center h-20">
-              <span className="text-gray-400 font-semibold text-sm">NSSF</span>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-center h-20">
-              <span className="text-gray-400 font-semibold text-sm">KRA</span>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-center h-20">
-              <span className="text-gray-400 font-semibold text-sm">NEMA</span>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-center h-20">
-              <span className="text-gray-400 font-semibold text-sm">KPA</span>
-            </div>
+            {/* Partner logos will be added via admin panel */}
+            <p className="col-span-full text-center text-gray-500 italic">
+              Our trusted partners will be displayed here. Partners are managed through the admin panel.
+            </p>
           </div>
         </div>
       </section>
@@ -1556,21 +1707,49 @@ export default function HomePage() {
               <h4 className="text-lg font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-gray-300">
                 <li>Email: info@ashgate.co.ke</li>
-                <li>Phone: +254 700 000 000</li>
+                <li>Phone: +254 700 580 379</li>
                 <li>Nairobi, Kenya</li>
               </ul>
               {/* Social Media Icons */}
               <div className="mt-4 flex items-center gap-4">
-                <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200" aria-label="Facebook">
+                <a 
+                  href="https://www.facebook.com/ashgateproperty" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors duration-200" 
+                  aria-label="Facebook"
+                >
                   <Facebook className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200" aria-label="X">
+                <a 
+                  href="https://x.com/ashgateproperty?s=21" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors duration-200" 
+                  aria-label="X (Twitter)"
+                >
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
                     <path d="M3 3h4l5 7 5-7h4l-7.5 10L21 21h-4l-5-7-5 7H3l7.5-10L3 3z" />
                   </svg>
                 </a>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200" aria-label="Instagram">
+                <a 
+                  href="https://www.instagram.com/ashgatepropertieskenya/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors duration-200" 
+                  aria-label="Instagram"
+                >
                   <Instagram className="w-5 h-5" />
+                </a>
+                <a 
+                  href="#" 
+                  className="text-gray-300 hover:text-white transition-colors duration-200 opacity-50 cursor-not-allowed" 
+                  aria-label="YouTube (Coming Soon)"
+                  title="YouTube channel coming soon"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
                 </a>
               </div>
             </div>
@@ -1599,7 +1778,12 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1 text-sm text-gray-800 space-y-2">
-                <p className="font-bold text-lg text-gray-900">We Use Cookies</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                  <p className="font-bold text-lg text-gray-900">We Use Cookies</p>
+                </div>
                 <p className="text-gray-700 leading-relaxed">
                   At Ashgate Limited, we respect your privacy and are committed to protecting your personal data. 
                   We use cookies and similar tracking technologies to enhance your browsing experience, analyze site traffic, 
@@ -2023,15 +2207,28 @@ export default function HomePage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max 5MB per file)</p>
               </div>
-              <div className="md:col-span-2 flex items-center justify-between">
-                <div className="text-sm text-gray-700">Paying homage to <a href="/terms-and-conditions.html" className="underline text-primary-600">Ashgate Limited&apos;s Terms & Conditions</a>, we thoroughly screen every Agent Application to keep Ashgate a secure, fraud‑free environment for our users.</div>
-                <button 
-                    type="submit" 
+              <div className="md:col-span-2 space-y-4">
+                <div className="text-sm text-gray-700">
+                  Paying homage to{' '}
+                  <a href="/terms-and-conditions.html" className="underline text-primary-600">
+                    Ashgate Limited&apos;s Terms & Conditions
+                  </a>
+                  , we thoroughly screen every Agent Application to keep Ashgate a secure, fraud‑free
+                  environment for our users.
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+                    onChange={(token) => setAgentCaptchaToken(token)}
+                  />
+                  <button
+                    type="submit"
                     disabled={isSubmitting}
                     className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                >
+                  >
                     {isSubmitting ? 'Submitting...' : 'Submit Application'}
-                </button>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -2145,20 +2342,30 @@ export default function HomePage() {
                 </p>
               </div>
               
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-200 space-y-4">
                 <div className="text-sm text-gray-600">
                   By submitting, you agree to{' '}
-                  <a href="/terms-and-conditions.html" target="_blank" className="text-primary-600 hover:text-primary-500 underline">
+                  <a
+                    href="/terms-and-conditions.html"
+                    target="_blank"
+                    className="text-primary-600 hover:text-primary-500 underline"
+                  >
                     Ashgate Limited&apos;s Terms & Conditions
                   </a>
                 </div>
-                <button 
-                    type="submit" 
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+                    onChange={(token) => setOwnerCaptchaToken(token)}
+                  />
+                  <button
+                    type="submit"
                     disabled={isSubmitting}
                     className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
-                </button>
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -2179,17 +2386,6 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-            </div>
-            
-            {/* Test Credentials Info */}
-            <div className="px-6 pt-4 pb-2">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs font-semibold text-blue-900 mb-1">Test Credentials (Demo Only):</p>
-                <div className="text-xs text-blue-800 space-y-1">
-                  <p><strong>Property Owner:</strong> owner@test.com / test123</p>
-                  <p><strong>Agent:</strong> agent@test.com / test123</p>
-                </div>
-              </div>
             </div>
             
             <form 
