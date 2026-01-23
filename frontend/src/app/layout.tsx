@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 import Analytics from "../components/Analytics";
+import Screensaver from "../components/Screensaver";
 
 export default function RootLayout({
   children,
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className="antialiased">
         <Analytics />
         {children}
+        <Screensaver />
       </body>
     </html>
   );

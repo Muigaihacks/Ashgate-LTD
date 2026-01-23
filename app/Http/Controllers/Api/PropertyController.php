@@ -101,7 +101,7 @@ class PropertyController extends Controller
             } else {
                 $property->broker = 'Ashgate Portfolio';
                 $property->contact_email = 'info@ashgate.co.ke';
-                $property->contact_phone = '+254 700 000 000'; // Update with actual phone
+                $property->contact_phone = '+254 700 580 379';
             }
         }
 

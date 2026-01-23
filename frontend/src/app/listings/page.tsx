@@ -128,16 +128,18 @@ export default function ListingsPage() {
         </div>
 
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
             <div className="flex-1 flex items-center bg-white border rounded-lg px-3">
               <Search className="w-4 h-4 text-gray-500" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 px-2 py-2 outline-none !text-gray-900" style={{ color: '#111827' }} placeholder="Search by title or location" />
               <button onClick={() => setQuery(query)} className="px-3 py-1 text-sm rounded bg-primary-600 text-white">Enter</button>
             </div>
-            <button onClick={() => setIsFilterOpen(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-black">
-              <Filter className="w-4 h-4" /> Filters
-            </button>
-            <button onClick={() => { setQuery(''); setMinPrice(''); setMaxPrice(''); setCategory(''); setPage(1); }} className="px-3 py-2 rounded-lg border text-black">Reset</button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsFilterOpen(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-black whitespace-nowrap">
+                <Filter className="w-4 h-4" /> Filters
+              </button>
+              <button onClick={() => { setQuery(''); setMinPrice(''); setMaxPrice(''); setCategory(''); setPage(1); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-black whitespace-nowrap">Reset</button>
+            </div>
           </div>
         </div>
 

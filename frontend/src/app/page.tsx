@@ -35,7 +35,8 @@ import {
   X,
   ZoomIn,
   Mail,
-  Phone
+  Phone,
+  Menu
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -49,6 +50,7 @@ export default function HomePage() {
   const [locations, setLocations] = useState<string[]>([]);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [filteredLocations, setFilteredLocations] = useState<string[]>([]);
   const [currentIconIndex, setCurrentIconIndex] = useState(0);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
@@ -65,6 +67,7 @@ export default function HomePage() {
   const [userName, setUserName] = useState<string>(''); // User's name for display
   const [isListPropertyDropdownOpen, setIsListPropertyDropdownOpen] = useState(false);
   const listPropertyDropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [signInData, setSignInData] = useState({ email: '', password: '' });
   const [signUpData, setSignUpData] = useState({ 
     firstName: '', 
@@ -750,6 +753,26 @@ export default function HomePage() {
   // Combine mock and real testimonials (real ones take priority, then fill with mock)
   const testimonials = [...realTestimonials, ...mockTestimonials];
 
+  // Close category dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        // Check if click is not on the input field
+        const target = event.target as HTMLElement;
+        if (!target.closest('input[placeholder="What are you looking for?"]')) {
+          setShowCategoryDropdown(false);
+        }
+      }
+    };
+
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showCategoryDropdown]);
+
   // Testimonials carousel - continuous smooth scrolling with pause on hover
   const testimonialsScrollRef = useRef<HTMLDivElement | null>(null);
   const [isTestimonialsHovered, setIsTestimonialsHovered] = useState(false);
@@ -793,9 +816,110 @@ export default function HomePage() {
       {/* Navigation */}
       <nav className="bg-white shadow-md border-b border-gray-200" style={{backgroundColor: 'white'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Left Navigation */}
-            <div className="hidden md:block">
+          <div className="flex items-center h-16 gap-4">
+            {/* Mobile Hamburger Menu */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden text-gray-700 p-2 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
+              aria-label="Toggle menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+
+            {/* Mobile Sidebar */}
+            {isMobileMenuOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                />
+                <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-xl z-50 md:hidden overflow-y-auto">
+                  <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+                    <button
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-gray-500 hover:text-gray-700"
+                      aria-label="Close menu"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <button 
+                      onClick={() => {
+                        router.push('/listings?type=sale');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Buy
+                    </button>
+                    <button 
+                      onClick={() => {
+                        router.push('/listings?type=rent');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Rent
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsPropertyOwnerOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+                    >
+                      <Home className="w-4 h-4 mr-2" />
+                      Sell - Property Owner
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsAgentOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Sell - Agents
+                    </button>
+                    <button 
+                      onClick={() => {
+                        router.push('/community');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Community
+                    </button>
+                    <button 
+                      onClick={() => {
+                        router.push('/news');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      News & Insights
+                    </button>
+                    <button 
+                      onClick={() => {
+                        router.push('/community');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      <span className="text-primary-600">Ashgate Property Manager</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Left Navigation - Desktop */}
+            <div className="hidden md:block flex-shrink-0">
               <div className="flex items-baseline space-x-6">
                 <button 
                   className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300"
@@ -875,7 +999,7 @@ export default function HomePage() {
             </div>
             
             {/* Center - Rotating Real Estate Icons with Carousel Effect */}
-            <div className="flex-shrink-0 flex items-center justify-center ml-56">
+            <div className="flex-shrink-0 flex items-center justify-center flex-1 md:flex-none md:ml-auto md:mr-6">
               <div className="relative w-20 h-16 overflow-hidden">
                 {/* Previous icon sliding out */}
                 <div 
@@ -928,8 +1052,9 @@ export default function HomePage() {
             </div>
             
             {/* Right Navigation */}
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block">
+            <div className="flex items-center space-x-4 flex-shrink-0">
+              {/* Desktop (lg+): Community & Ashgate Property Manager */}
+              <div className="hidden lg:block">
                 <div className="flex items-baseline space-x-4">
                   {/* Community Dropdown */}
                   <div className="relative">
@@ -945,7 +1070,7 @@ export default function HomePage() {
                       onMouseLeave={() => {
                         dropdownTimeoutRef.current = setTimeout(() => {
                           setIsCommunityOpen(false);
-                        }, 200); // 200ms delay before closing
+                        }, 200);
                       }}
                       onClick={() => {
                         setIsCommunityOpen(!isCommunityOpen);
@@ -997,8 +1122,68 @@ export default function HomePage() {
                   </button>
                 </div>
               </div>
-              {/* Profile Icon / Sign In */}
+
+              {/* Tablet (md to lg): Community & Sign In (instead of Ashgate Property Manager) */}
+              <div className="hidden md:block lg:hidden">
+                <div className="flex items-baseline space-x-4">
+                  {/* Community Dropdown */}
               <div className="relative">
+                    <button 
+                      className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center"
+                      onMouseEnter={() => {
+                        if (dropdownTimeoutRef.current) {
+                          clearTimeout(dropdownTimeoutRef.current);
+                          dropdownTimeoutRef.current = null;
+                        }
+                        setIsCommunityOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        dropdownTimeoutRef.current = setTimeout(() => {
+                          setIsCommunityOpen(false);
+                        }, 200);
+                      }}
+                      onClick={() => {
+                        setIsCommunityOpen(!isCommunityOpen);
+                      }}
+                    >
+                      Community
+                      <ChevronDown className="ml-1 w-4 h-4" />
+                    </button>
+                    {isCommunityOpen && (
+                      <div 
+                        className="absolute top-full left-0 mt-0 w-48 bg-white rounded-md shadow-xl border border-gray-200 py-1 z-50"
+                        onMouseEnter={() => {
+                          if (dropdownTimeoutRef.current) {
+                            clearTimeout(dropdownTimeoutRef.current);
+                            dropdownTimeoutRef.current = null;
+                          }
+                          setIsCommunityOpen(true);
+                        }}
+                        onMouseLeave={() => {
+                          dropdownTimeoutRef.current = setTimeout(() => {
+                            setIsCommunityOpen(false);
+                          }, 200);
+                        }}
+                      >
+                        <button 
+                          onClick={() => router.push('/community')} 
+                          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                        >
+                          <Users className="w-4 h-4 mr-2" />
+                          Experts
+                        </button>
+                        <button 
+                          onClick={() => router.push('/news')} 
+                          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          News & Insights
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Sign In button (replaces Ashgate Property Manager on tablet) */}
                 {isUserLoggedIn ? (
                   <button
                     className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center gap-2"
@@ -1006,7 +1191,7 @@ export default function HomePage() {
                     aria-expanded={isProfileDropdownOpen}
                   >
                     <User className="w-5 h-5" />
-                    <span className="hidden md:inline text-gray-700">{userName}</span>
+                      <span className="text-gray-700">{userName}</span>
                   </button>
                 ) : (
                   <button 
@@ -1016,7 +1201,32 @@ export default function HomePage() {
                     }}
                   >
                     <User className="w-5 h-5" />
-                    <span className="hidden sm:inline">Sign In</span>
+                      <span>Sign In</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile & Desktop: Profile Icon / Sign In (only shows on mobile and desktop, hidden on tablet) */}
+              <div className="relative md:hidden lg:block">
+                {isUserLoggedIn ? (
+                  <button
+                    className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center gap-2"
+                    onClick={() => setIsProfileDropdownOpen(true)}
+                    aria-expanded={isProfileDropdownOpen}
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="hidden lg:inline text-gray-700">{userName}</span>
+                  </button>
+                ) : (
+                  <button 
+                    className="nav-button text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 flex items-center gap-2"
+                    onClick={() => {
+                      setIsSignInOpen(true);
+                    }}
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="hidden lg:inline">Sign In</span>
                   </button>
                 )}
                 {isUserLoggedIn && isProfileDropdownOpen && (
@@ -1206,7 +1416,7 @@ export default function HomePage() {
             </p>
             
             {/* Search Bar */}
-            <div className="max-w-4xl mx-auto bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-12 border border-white border-opacity-30">
+            <div className="max-w-4xl mx-auto bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-12 border border-white border-opacity-30 relative" ref={categoryDropdownRef}>
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
@@ -1221,31 +1431,6 @@ export default function HomePage() {
                       style={{ color: '#111827' }}
                     />
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    {showCategoryDropdown && (
-                      <div className="absolute z-[99999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-auto" style={{ position: 'absolute', zIndex: 99999 }}>
-                        <button
-                          onClick={() => {
-                            setSearchCategory('');
-                            setShowCategoryDropdown(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
-                        >
-                          All Categories
-                        </button>
-                        {['House', 'Apartment', 'Land', 'Commercial'].map(cat => (
-                          <button
-                            key={cat}
-                            onClick={() => {
-                              setSearchCategory(cat);
-                              setShowCategoryDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="flex-1">
@@ -1289,6 +1474,43 @@ export default function HomePage() {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </button>
               </div>
+              
+              {/* Horizontal Category Dropdown */}
+              {showCategoryDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-2xl z-[99999] p-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        setSearchCategory('');
+                        setShowCategoryDropdown(false);
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                        searchCategory === '' 
+                          ? 'bg-primary-600 text-white shadow-md' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                    {['House', 'Apartment', 'Land', 'Commercial'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => {
+                          setSearchCategory(cat);
+                          setShowCategoryDropdown(false);
+                        }}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          searchCategory === cat 
+                            ? 'bg-primary-600 text-white shadow-md' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Property Types */}
