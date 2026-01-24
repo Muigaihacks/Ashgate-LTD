@@ -110,24 +110,20 @@ ACTIVITY_LOGGER_TABLE_NAME=activity_log
 - `CORS_ALLOWED_ORIGINS` will be updated after Vercel deployment
 - **Optimization variables** (PHP_MEMORY_LIMIT, OPCACHE_*) help minimize resource usage for free tier
 
-### 1.6 Configure Build Settings
+### 1.6 Build Settings (Now Automatic!)
 
-1. In Railway project → Your Laravel service → **"Settings"** tab
-2. Scroll to **"Build Command"** and set (paste ONLY the command, NOT the ```bash part):
-```
-composer install --optimize-autoloader --no-dev && php artisan config:cache && php artisan route:cache && php artisan view:cache
-```
+**Good news!** We've added a `Dockerfile` to the project, so Railway will automatically:
+- Install all required PHP extensions (including `intl` and `zip` for Filament)
+- Install Composer dependencies
+- Cache Laravel configuration
+- Run migrations on startup
+- Start the server
 
-3. Scroll to **"Start Command"** and set (paste ONLY the command, NOT the ```bash part):
-```
-php artisan migrate --force && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=$PORT
-```
+**No manual build/start commands needed!** Railway detects the Dockerfile and uses it automatically.
 
-**Important Notes:**
-- **Do NOT include** ````bash` or any markdown formatting - just paste the raw command
-- The start command includes migrations (`migrate --force`) and storage link creation - this runs automatically on every deployment
-- Railway automatically sets `$PORT` environment variable
-- Migrations are safe to run on every start - they only execute if there are new changes
+**If Railway still shows build settings:**
+- You can leave them empty/default
+- Railway will use the Dockerfile instead
 
 ### 1.6.1 Configure Database Region (Optional - For Latency)
 
@@ -156,22 +152,27 @@ After deployment completes:
 2. **Copy this URL** - you'll need it for Vercel configuration
 3. Test it: Open `https://your-url.railway.app/api/properties` in a browser (should return JSON or an error, but not 404)
 
-### 1.9 Verify Migrations Ran Successfully
+### 1.9 Verify Deployment & Migrations
 
-**Migrations are now automatic!** They run as part of the start command (see Step 1.6).
+**Migrations are now automatic!** The Dockerfile runs them on every container start.
 
-**To verify migrations ran:**
-1. Check Railway deployment logs:
+**To verify everything worked:**
+
+1. **Check Railway deployment logs:**
    - Railway Dashboard → Your Laravel service → **"Deployments"** → Latest deployment → **"Logs"**
-   - Look for: `Running migrations...` or `Migration table created successfully`
+   - Look for: `Migrating:` messages or `Nothing to migrate`
    - If you see errors, they'll be in the logs
 
-2. Test database connection:
+2. **Test the API:**
    - Open: `https://your-railway-url.railway.app/api/properties`
    - Should return JSON (even if empty array `[]`)
    - If you get database errors, check the logs
 
-**Alternative: Using Railway CLI (If needed for troubleshooting)**
+3. **Test the Admin Panel:**
+   - Open: `https://your-railway-url.railway.app/admin`
+   - Should show the Filament login page
+
+**Troubleshooting (If needed):**
 ```bash
 # Install Railway CLI (if not already installed)
 npm i -g @railway/cli
@@ -179,19 +180,13 @@ npm i -g @railway/cli
 # Login
 railway login
 
-# Link to your project (run this in your project directory)
+# Link to your project
 cd /Users/user/Documents/GitHub/Ashgate-LTD
 railway link
 
-# Check if migrations ran (view logs)
+# Check logs
 railway logs
-
-# If migrations didn't run, you can manually trigger (but they should run automatically)
-railway run php artisan migrate --force
-railway run php artisan storage:link
 ```
-
-**Note:** Railway free tier doesn't have shell access, so migrations are included in the start command. This is the recommended approach and works perfectly!
 
 ---
 
