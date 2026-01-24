@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Frontend (deployed separately on Vercel)
+frontend/node_modules
+frontend/.next
+frontend/.env.local
+
+# Laravel development files
+vendor
+node_modules
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Tests
+tests
+phpunit.xml
+
+# Logs and cache
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+
+# Keep .gitkeep files
+!storage/logs/.gitkeep
+!storage/framework/cache/.gitkeep
+!storage/framework/sessions/.gitkeep
+!storage/framework/views/.gitkeep
+!bootstrap/cache/.gitkeep

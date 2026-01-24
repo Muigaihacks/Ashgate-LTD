@@ -91,6 +91,12 @@ SESSION_DRIVER=database
 CACHE_DRIVER=database
 QUEUE_CONNECTION=database
 
+# PHP Optimizations (Free Tier Optimization)
+PHP_MEMORY_LIMIT=128M
+OPCACHE_ENABLE=1
+OPCACHE_VALIDATE_TIMESTAMPS=0
+OPCACHE_REVALIDATE_FREQ=0
+
 # Activity Logging
 ACTIVITY_LOGGER_ENABLED=true
 ACTIVITY_LOGGER_TABLE_NAME=activity_log
@@ -102,21 +108,40 @@ ACTIVITY_LOGGER_TABLE_NAME=activity_log
 - Database variables use `${{Postgres.*}}` syntax - Railway automatically replaces these
 - `MAIL_PASSWORD` is a placeholder - we'll update it when you get the Outlook password
 - `CORS_ALLOWED_ORIGINS` will be updated after Vercel deployment
+- **Optimization variables** (PHP_MEMORY_LIMIT, OPCACHE_*) help minimize resource usage for free tier
 
 ### 1.6 Configure Build Settings
 
 1. In Railway project → Your Laravel service → **"Settings"** tab
-2. Scroll to **"Build Command"** and set:
-```bash
+2. Scroll to **"Build Command"** and set (paste ONLY the command, NOT the ```bash part):
+```
 composer install --optimize-autoloader --no-dev && php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
-3. Scroll to **"Start Command"** and set:
-```bash
-php artisan serve --host=0.0.0.0 --port=$PORT
+3. Scroll to **"Start Command"** and set (paste ONLY the command, NOT the ```bash part):
+```
+php artisan migrate --force && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=$PORT
 ```
 
-**Note:** Railway automatically sets `$PORT` environment variable.
+**Important Notes:**
+- **Do NOT include** ````bash` or any markdown formatting - just paste the raw command
+- The start command includes migrations (`migrate --force`) and storage link creation - this runs automatically on every deployment
+- Railway automatically sets `$PORT` environment variable
+- Migrations are safe to run on every start - they only execute if there are new changes
+
+### 1.6.1 Configure Database Region (Optional - For Latency)
+
+Railway usually auto-selects the best region, but you can check/set it:
+
+1. In Railway project → Your **PostgreSQL database service**
+2. Go to **"Settings"** tab
+3. Look for **"Region"** or **"Location"** setting
+4. **Recommended regions for Kenya:**
+   - **Europe (Frankfurt)** - Lowest latency from Kenya (~150-200ms)
+   - **US East (Virginia)** - Alternative (~250-300ms)
+   - Railway may auto-select based on your account location
+
+**Note:** If you don't see a region option, Railway handles it automatically. The default is usually fine for most use cases.
 
 ### 1.7 Deploy
 
@@ -131,22 +156,24 @@ After deployment completes:
 2. **Copy this URL** - you'll need it for Vercel configuration
 3. Test it: Open `https://your-url.railway.app/api/properties` in a browser (should return JSON or an error, but not 404)
 
-### 1.9 Run Database Migrations
+### 1.9 Verify Migrations Ran Successfully
 
-**Option A: Using Railway Dashboard**
-1. In Railway project → Your Laravel service
-2. Click **"Deployments"** tab
-3. Click on the latest deployment
-4. Click **"Shell"** tab (or use the terminal icon)
-5. Run these commands:
-```bash
-php artisan migrate --force
-php artisan storage:link
-```
+**Migrations are now automatic!** They run as part of the start command (see Step 1.6).
 
-**Option B: Using Railway CLI (Recommended)**
+**To verify migrations ran:**
+1. Check Railway deployment logs:
+   - Railway Dashboard → Your Laravel service → **"Deployments"** → Latest deployment → **"Logs"**
+   - Look for: `Running migrations...` or `Migration table created successfully`
+   - If you see errors, they'll be in the logs
+
+2. Test database connection:
+   - Open: `https://your-railway-url.railway.app/api/properties`
+   - Should return JSON (even if empty array `[]`)
+   - If you get database errors, check the logs
+
+**Alternative: Using Railway CLI (If needed for troubleshooting)**
 ```bash
-# Install Railway CLI
+# Install Railway CLI (if not already installed)
 npm i -g @railway/cli
 
 # Login
@@ -156,10 +183,15 @@ railway login
 cd /Users/user/Documents/GitHub/Ashgate-LTD
 railway link
 
-# Run migrations
+# Check if migrations ran (view logs)
+railway logs
+
+# If migrations didn't run, you can manually trigger (but they should run automatically)
 railway run php artisan migrate --force
 railway run php artisan storage:link
 ```
+
+**Note:** Railway free tier doesn't have shell access, so migrations are included in the start command. This is the recommended approach and works perfectly!
 
 ---
 
