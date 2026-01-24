@@ -6,6 +6,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\Models\Activity;
 
 class LogSuccessfulLogin
@@ -22,6 +23,12 @@ class LogSuccessfulLogin
      */
     public function handle(Login $event): void
     {
+        // Prevent duplicate logging within 10 seconds
+        $cacheKey = 'login_logged_' . $event->user->id;
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+        Cache::put($cacheKey, true, 10); // 10 seconds debounce
         $ip = $this->request->ip();
         $userAgent = $this->request->userAgent();
         
