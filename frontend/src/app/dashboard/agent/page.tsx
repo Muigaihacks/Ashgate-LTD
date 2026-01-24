@@ -1503,36 +1503,37 @@ export default function AgentDashboard() {
                         {userData.name}
                       </div>
                     </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Phone</label>
-                  <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
-                    {userData.phone || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email Address</label>
-                  <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
-                    {userData.email}
-                  </div>
-                </div>
-                {userApplication && userApplication.type === 'agent' && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Company / Agency</label>
-                    <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
-                      {userApplication.details?.agency || userApplication.details?.professionalBoard || 'N/A'}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Phone</label>
+                      <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                        {userData.phone || 'N/A'}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {userApplication && userApplication.details?.bio && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Bio</label>
-                    <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
-                      {userApplication.details.bio}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email Address</label>
+                      <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                        {userData.email}
+                      </div>
                     </div>
+                    {userApplication && userApplication.type === 'agent' && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Company / Agency</label>
+                        <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                          {userApplication.details?.agency || userApplication.details?.professionalBoard || 'N/A'}
+                        </div>
+                      </div>
+                    )}
+                    {userApplication && userApplication.details?.bio && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Bio</label>
+                        <div className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'}`}>
+                          {userApplication.details.bio}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
               <div className="flex justify-end gap-3 mt-6">
                 <button 
                   type="button"
