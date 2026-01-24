@@ -1,5 +1,6 @@
 # Laravel application Dockerfile for Railway deployment
-FROM php:8.3-cli
+# Using FrankenPHP for production-ready serving
+FROM dunglas/frankenphp:latest-php8.3
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -13,22 +14,18 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions (including intl and zip that Filament requires)
-RUN docker-php-ext-configure intl \
-    && docker-php-ext-install -j$(nproc) \
-    pdo \
+RUN install-php-extensions \
     pdo_pgsql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
+    pgsql \
     intl \
     zip \
-    opcache
+    opcache \
+    pcntl \
+    bcmath \
+    exif
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -48,19 +45,28 @@ COPY . .
 # Run composer scripts after copying all files
 RUN composer dump-autoload --optimize
 
-# Cache Laravel configuration
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+# Set permissions for Laravel
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Create storage symlink directory
-RUN mkdir -p /app/public/storage
+# Create Caddyfile for FrankenPHP
+RUN echo '{\n\
+    frankenphp\n\
+    order php_server before file_server\n\
+}\n\
+\n\
+:${PORT:8080} {\n\
+    root * /app/public\n\
+    encode zstd br gzip\n\
+    php_server\n\
+}' > /etc/caddy/Caddyfile
 
-# Set permissions
-RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
-
-# Expose port (Railway will set PORT env variable)
+# Expose port
 EXPOSE 8080
 
-# Start command - runs migrations and starts server
-CMD php artisan migrate --force && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+# Start script that runs migrations then starts FrankenPHP
+CMD php artisan migrate --force && \
+    php artisan storage:link 2>/dev/null || true && \
+    php artisan config:clear && \
+    php artisan config:cache && \
+    frankenphp run --config /etc/caddy/Caddyfile
