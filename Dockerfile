@@ -66,6 +66,9 @@ set -e\n\
 # Run migrations\n\
 php artisan migrate --force\n\
 \n\
+# Run seeders (creates admin user if not exists)\n\
+php artisan db:seed --force 2>/dev/null || true\n\
+\n\
 # Create storage link (ignore if exists)\n\
 php artisan storage:link 2>/dev/null || true\n\
 \n\

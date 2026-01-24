@@ -25,10 +25,10 @@ class AdminUserSeeder extends Seeder
         $role = Role::firstOrCreate(['name' => 'super_admin']);
 
         $user = User::firstOrCreate(
-            ['email' => 'admin@ashgate.com'],
+            ['email' => 'admin@ashgate.co.ke'],
             [
-                'name' => 'AshGate Admin',
-                'password' => Hash::make('admin123'),
+                'name' => 'Ashgate Super Admin',
+                'password' => Hash::make('Ashgate@Admin2026!'),
                 'email_verified_at' => now(),
                 'is_active' => true,
             ]
