@@ -135,9 +135,22 @@ class ApplicationResource extends Resource
                     ->toggleable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type'),
-                Tables\Filters\SelectFilter::make('status'),
+                Tables\Filters\SelectFilter::make('type')
+                    ->options([
+                        'owner' => 'Property Owner',
+                        'agent' => 'Real Estate Agent',
+                        'expert' => 'Community Expert',
+                    ])
+                    ->label('Application Type'),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->label('Status'),
             ])
+            ->defaultSort('created_at', 'desc')
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('approve')
