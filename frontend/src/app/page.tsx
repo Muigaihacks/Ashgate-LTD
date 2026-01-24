@@ -2161,7 +2161,7 @@ export default function HomePage() {
                         </div>
                         {/* Thumbnail strip */}
                         <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex gap-2 overflow-x-auto">
-                          {selectedListing.images.map((img, idx) => (
+                          {selectedListing.images.map((img: string, idx: number) => (
                             <button
                               key={idx}
                               onClick={(e) => {
@@ -2315,7 +2315,7 @@ export default function HomePage() {
 
                 {/* Thumbnail strip */}
                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 max-w-4xl overflow-x-auto px-4">
-                  {selectedListing.images.map((img, idx) => (
+                  {selectedListing.images.map((img: string, idx: number) => (
                     <button
                       key={idx}
                       onClick={(e) => {
@@ -2990,7 +2990,7 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
       });
       new maplibregl.Marker().setLngLat(center).addTo(map);
       mapInstanceRef.current = map;
-      map.on('error', (e) => {
+      map.on('error', (e: { error?: { message?: string } }) => {
         // Only show error if it's a critical map loading error, not layer-related
         if (e.error && e.error.message && !e.error.message.includes('source')) {
           setMapToast('Map failed to load. Check your internet or API key.');

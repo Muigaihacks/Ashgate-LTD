@@ -420,7 +420,7 @@ function TabsLite({ listing }: { listing: any }) {
       });
       new maplibregl.Marker().setLngLat(center).addTo(map);
       mapInstanceRef.current = map;
-      map.on('error', (e) => {
+      map.on('error', (e: { error?: { message?: string } }) => {
         // Only show error if it's a critical map loading error, not layer-related
         if (e.error && e.error.message && !e.error.message.includes('source')) {
           setMapToast('Map failed to load. Check your internet or API key.');
