@@ -1,19 +1,20 @@
 {
 	frankenphp
-	order php_server before file_server
 }
 
 :{$PORT:8080} {
 	root * /app/public
 	encode zstd br gzip
 
-	@static {
-		file
-		path *.css *.js *.ico *.gif *.jpg *.jpeg *.png *.svg *.woff *.woff2 *.ttf *.eot
+	# Try to serve static files first, then fall back to PHP
+	@notStatic {
+		not file
+		not path /favicon.ico
 	}
-	handle @static {
-		file_server
-	}
-
+	
+	# Serve static files
+	file_server
+	
+	# Handle PHP for non-static requests
 	php_server
 }

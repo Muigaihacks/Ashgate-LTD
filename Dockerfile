@@ -45,6 +45,10 @@ COPY . .
 # Run composer scripts after copying all files
 RUN composer dump-autoload --optimize
 
+# Publish Filament assets during build (before setting permissions)
+RUN php artisan vendor:publish --tag=filament-config --force || true
+RUN php artisan filament:assets || true
+
 # Set permissions for Laravel
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
     && chmod -R 775 /app/storage /app/bootstrap/cache
