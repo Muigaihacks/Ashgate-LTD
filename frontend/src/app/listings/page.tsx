@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Bed, Bath, CarFront, Ruler, Search, Filter, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function ListingsPage() {
+function ListingsContent() {
   const params = useSearchParams();
   const router = useRouter();
   const initialType = params.get('type') || 'sale';
@@ -234,6 +234,13 @@ export default function ListingsPage() {
   );
 }
 
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ListingsContent />
+    </Suspense>
+  );
+}
 
 function DetailsModal({ listing, onClose }: { listing: any, onClose: ()=>void }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
