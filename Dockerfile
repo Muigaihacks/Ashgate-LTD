@@ -49,24 +49,31 @@ RUN composer dump-autoload --optimize
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
     && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Create Caddyfile for FrankenPHP
-RUN echo '{\n\
-    frankenphp\n\
-    order php_server before file_server\n\
-}\n\
-\n\
-:${PORT:8080} {\n\
-    root * /app/public\n\
-    encode zstd br gzip\n\
-    php_server\n\
-}' > /etc/caddy/Caddyfile
+# Copy Caddyfile
+COPY Caddyfile /etc/caddy/Caddyfile
 
 # Expose port
 EXPOSE 8080
 
-# Start script that runs migrations then starts FrankenPHP
-CMD php artisan migrate --force && \
-    php artisan storage:link 2>/dev/null || true && \
-    php artisan config:clear && \
-    php artisan config:cache && \
-    frankenphp run --config /etc/caddy/Caddyfile
+# Create an entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Run migrations\n\
+php artisan migrate --force\n\
+\n\
+# Create storage link (ignore if exists)\n\
+php artisan storage:link 2>/dev/null || true\n\
+\n\
+# Clear and rebuild caches with production env vars\n\
+php artisan config:clear\n\
+php artisan cache:clear\n\
+php artisan route:clear\n\
+php artisan view:clear\n\
+\n\
+# Start FrankenPHP\n\
+exec frankenphp run --config /etc/caddy/Caddyfile\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+# Use the entrypoint script
+CMD ["/entrypoint.sh"]
