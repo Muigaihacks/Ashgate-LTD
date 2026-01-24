@@ -65,6 +65,9 @@ php artisan migrate --force\n\
 # Create storage link (ignore if exists)\n\
 php artisan storage:link 2>/dev/null || true\n\
 \n\
+# Publish Filament assets\n\
+php artisan filament:assets 2>/dev/null || true\n\
+\n\
 # Clear and rebuild caches with production env vars\n\
 php artisan config:clear\n\
 php artisan cache:clear\n\
