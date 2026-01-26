@@ -1407,8 +1407,8 @@ export default function HomePage() {
               />
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.5)'}}>
-              Find Your Perfect
-              <span className="text-primary-100 block drop-shadow-lg">Property</span>
+              Turning Houses
+              <span className="text-primary-100 block drop-shadow-lg">To Homes</span>
             </h1>
             <p className="text-xl text-white mb-8 max-w-3xl mx-auto leading-relaxed drop-shadow-md" style={{textShadow: '1px 1px 3px rgba(0,0,0,0.5)'}}>
               Discover premium properties across East Africa. From luxury homes to prime land, 
