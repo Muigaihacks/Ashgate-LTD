@@ -121,7 +121,9 @@ class PropertyResource extends Resource
                                     ->disk('public')
                                     ->directory('property-images')
                                     ->visibility('public')
-                                    ->required(),
+                                    ->required()
+                                    ->openable()
+                                    ->downloadable(),
                                 Forms\Components\TextInput::make('alt_text')
                                     ->label('Alt Text (Optional)'),
                                 Forms\Components\Toggle::make('is_primary')
@@ -129,32 +131,19 @@ class PropertyResource extends Resource
                             ])
                             ->grid(3)
                             ->columnSpanFull(),
-                        Forms\Components\Repeater::make('videos')
-                            ->relationship()
-                            ->schema([
-                                Forms\Components\FileUpload::make('url')
-                                    ->label('Video')
-                                    ->disk('public')
-                                    ->acceptedFileTypes(['video/mp4', 'video/mov', 'video/avi', 'video/quicktime'])
-                                    ->directory('property-videos')
-                                    ->visibility('public')
-                                    ->maxSize(51200) // 50MB
-                                    ->required()
-                                    ->deletable(false)
-                                    ->downloadable()
-                                    ->openable(),
-                                Forms\Components\TextInput::make('title')
-                                    ->label('Video Title (Optional)'),
-                                Forms\Components\Textarea::make('description')
-                                    ->label('Description (Optional)')
-                                    ->rows(2),
-                            ])
-                            ->grid(2)
-                            ->columnSpanFull()
-                            ->label('Videos')
-                            ->deletable(true)
-                            ->reorderable(false)
-                            ->collapsible(),
+                        
+                        // Direct Video Upload (No repeater to avoid nesting issues)
+                        Forms\Components\FileUpload::make('video_files')
+                            ->label('Property Videos')
+                            ->disk('public')
+                            ->directory('property-videos')
+                            ->visibility('public')
+                            ->multiple()
+                            ->maxFiles(5)
+                            ->maxSize(65536) // 64MB
+                            ->acceptedFileTypes(['video/mp4', 'video/mov', 'video/avi', 'video/quicktime'])
+                            ->helperText('Upload up to 5 videos (MP4, MOV, AVI). Max 64MB each.')
+                            ->columnSpanFull(),
                     ]),
 
                 // Floor Plan & 3D Tour (for House, Apartment, Commercial only)

@@ -6,6 +6,7 @@ use App\Filament\Resources\PropertyResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
+use App\Models\PropertyVideo;
 
 class CreateProperty extends CreateRecord
 {
@@ -56,13 +57,21 @@ class CreateProperty extends CreateRecord
             $data['has_3d_tour'] = true;
         }
         
-        // Filter out videos with null/empty URLs (prevent saving empty video entries)
-        if (isset($data['videos']) && is_array($data['videos'])) {
-            $data['videos'] = array_filter($data['videos'], function($video) {
-                return isset($video['url']) && !empty($video['url']);
-            });
-        }
-        
         return $data;
+    }
+    
+    protected function afterCreate(): void
+    {
+        // Handle video files
+        $uploadedFiles = $this->data['video_files'] ?? [];
+        
+        foreach ($uploadedFiles as $file) {
+            PropertyVideo::create([
+                'property_id' => $this->record->id,
+                'url' => $file,
+                'title' => 'Video', // Default title
+                'sort_order' => 0
+            ]);
+        }
     }
 }

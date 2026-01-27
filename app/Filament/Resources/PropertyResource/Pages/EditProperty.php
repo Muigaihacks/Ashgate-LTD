@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PropertyResource\Pages;
 use App\Filament\Resources\PropertyResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use App\Models\PropertyVideo;
 
 class EditProperty extends EditRecord
 {
@@ -15,6 +16,13 @@ class EditProperty extends EditRecord
         return [
             Actions\DeleteAction::make(),
         ];
+    }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Load existing videos into the file upload field
+        $data['video_files'] = $this->record->videos->pluck('url')->toArray();
+        return $data;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
@@ -32,19 +40,37 @@ class EditProperty extends EditRecord
             $data['has_3d_tour'] = false;
         }
         
-        // Filter out videos with null/empty URLs (prevent saving empty video entries)
-        if (isset($data['videos']) && is_array($data['videos'])) {
-            $data['videos'] = array_filter($data['videos'], function($video) {
-                return isset($video['url']) && !empty($video['url']);
-            });
-        }
-        
         return $data;
     }
     
     protected function afterSave(): void
     {
-        // Clean up any videos with null URLs (safety check)
-        $this->record->videos()->whereNull('url')->delete();
+        // Handle video files sync
+        $uploadedFiles = $this->data['video_files'] ?? [];
+        
+        // 1. Get existing videos
+        $existingVideos = $this->record->videos;
+        $existingUrls = $existingVideos->pluck('url')->toArray();
+        
+        // 2. Delete videos that are no longer in the uploaded list
+        $videosToDelete = $existingVideos->filter(function ($video) use ($uploadedFiles) {
+            return !in_array($video->url, $uploadedFiles);
+        });
+        
+        foreach ($videosToDelete as $video) {
+            $video->delete();
+        }
+        
+        // 3. Create new videos
+        foreach ($uploadedFiles as $file) {
+            if (!in_array($file, $existingUrls)) {
+                PropertyVideo::create([
+                    'property_id' => $this->record->id,
+                    'url' => $file,
+                    'title' => 'Video', // Default title
+                    'sort_order' => 0
+                ]);
+            }
+        }
     }
 }

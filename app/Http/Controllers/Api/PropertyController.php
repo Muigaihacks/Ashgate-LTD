@@ -22,7 +22,7 @@ class PropertyController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Property::with(['images', 'amenities', 'user:id,name,email,phone'])
+        $query = Property::with(['images', 'videos', 'amenities', 'user:id,name,email,phone'])
             ->where('is_active', true);
 
         // If authenticated, also include user's own properties (active or inactive)
@@ -87,6 +87,16 @@ class PropertyController extends Controller
                         $image->url = Storage::disk('public')->url($image->url);
                     }
                     return $image;
+                });
+            }
+
+            // Transform video URLs to full URLs
+            if ($property->videos) {
+                $property->videos->transform(function ($video) {
+                    if ($video->url && !filter_var($video->url, FILTER_VALIDATE_URL)) {
+                        $video->url = Storage::disk('public')->url($video->url);
+                    }
+                    return $video;
                 });
             }
             
@@ -383,7 +393,7 @@ class PropertyController extends Controller
      */
     public function show($id)
     {
-        $property = Property::with(['images', 'amenities', 'user:id,name,email,phone'])
+        $property = Property::with(['images', 'videos', 'amenities', 'user:id,name,email,phone'])
             ->findOrFail($id);
 
         // Only show inactive properties to the owner or if property is active
@@ -428,6 +438,16 @@ class PropertyController extends Controller
                     $image->url = Storage::disk('public')->url($image->url);
                 }
                 return $image;
+            });
+        }
+
+        // Transform video URLs to full URLs
+        if ($property->videos) {
+            $property->videos->transform(function ($video) {
+                if ($video->url && !filter_var($video->url, FILTER_VALIDATE_URL)) {
+                    $video->url = Storage::disk('public')->url($video->url);
+                }
+                return $video;
             });
         }
 

@@ -477,6 +477,15 @@ export default function HomePage() {
                   .map((img: any) => img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${img.url}`)
               : [];
             
+            // Get all video URLs
+            const allVideos = p.videos && p.videos.length > 0
+              ? p.videos.map((vid: any) => vid.url.startsWith('http') ? vid.url : `${process.env.NEXT_PUBLIC_API_URL}/storage/${vid.url}`)
+              : [];
+            
+            // Combined gallery
+            const gallery = [...allImages, ...allVideos];
+            const finalImages = gallery.length > 0 ? gallery : (imageUrl ? [imageUrl] : []);
+
             return {
               id: p.id,
               title: p.title,
@@ -503,7 +512,7 @@ export default function HomePage() {
               source: p.broker === 'Direct Owner' ? 'owner' : 'agent',
               has3DTour: p.has_3d_tour || false,
               hasFloorPlan: p.has_floor_plan || false,
-              images: allImages.length > 0 ? allImages : (imageUrl ? [imageUrl] : []),
+              images: finalImages,
               coords: p.latitude && p.longitude ? { lat: parseFloat(p.latitude), lng: parseFloat(p.longitude) } : null,
               amenities: p.amenities || [],
               contact_email: p.contact_email || null,
@@ -2121,19 +2130,29 @@ export default function HomePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
               <div className="lg:col-span-2">
                 {selectedListing.images && selectedListing.images.length > 0 ? (
-                  <div className="relative h-72 bg-gray-900 overflow-hidden group">
-                    <img 
-                      src={selectedListing.images[selectedImageIndex]} 
-                      alt={`${selectedListing.title} - Image ${selectedImageIndex + 1}`}
-                      className="w-full h-full object-cover cursor-zoom-in"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsImageZoomed(true);
-                      }}
-                    />
-                    <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ZoomIn className="w-5 h-5" />
-                    </div>
+                  <div className="relative h-72 bg-gray-900 overflow-hidden group flex items-center justify-center">
+                    {selectedListing.images[selectedImageIndex].match(/\.(mp4|mov|avi|webm)$/i) ? (
+                      <video 
+                        src={selectedListing.images[selectedImageIndex]} 
+                        controls
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img 
+                        src={selectedListing.images[selectedImageIndex]} 
+                        alt={`${selectedListing.title} - Image ${selectedImageIndex + 1}`}
+                        className="w-full h-full object-cover cursor-zoom-in"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsImageZoomed(true);
+                        }}
+                      />
+                    )}
+                    {!selectedListing.images[selectedImageIndex].match(/\.(mp4|mov|avi|webm)$/i) && (
+                      <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="w-5 h-5" />
+                      </div>
+                    )}
                     {selectedListing.images.length > 1 && (
                       <>
                         <button
@@ -2141,7 +2160,7 @@ export default function HomePage() {
                             e.stopPropagation();
                             setSelectedImageIndex((prev) => (prev === 0 ? selectedListing.images.length - 1 : prev - 1));
                           }}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 z-10"
                           aria-label="Previous image"
                         >
                           <ChevronLeft className="w-6 h-6" />
@@ -2151,16 +2170,16 @@ export default function HomePage() {
                             e.stopPropagation();
                             setSelectedImageIndex((prev) => (prev === selectedListing.images.length - 1 ? 0 : prev + 1));
                           }}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 z-10"
                           aria-label="Next image"
                         >
                           <ChevronRight className="w-6 h-6" />
                         </button>
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm z-10">
                           {selectedImageIndex + 1} / {selectedListing.images.length}
                         </div>
                         {/* Thumbnail strip */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex gap-2 overflow-x-auto">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex gap-2 overflow-x-auto z-10">
                           {selectedListing.images.map((img: string, idx: number) => (
                             <button
                               key={idx}
@@ -2168,11 +2187,15 @@ export default function HomePage() {
                                 e.stopPropagation();
                                 setSelectedImageIndex(idx);
                               }}
-                              className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all ${
+                              className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all relative ${
                                 idx === selectedImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
                               }`}
                             >
-                              <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                              {img.match(/\.(mp4|mov|avi|webm)$/i) ? (
+                                <div className="w-full h-full bg-gray-800 flex items-center justify-center text-white text-xs">Video</div>
+                              ) : (
+                                <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                              )}
                             </button>
                           ))}
                         </div>

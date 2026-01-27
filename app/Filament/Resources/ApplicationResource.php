@@ -241,8 +241,8 @@ class ApplicationResource extends Resource
                         $user = User::create([
                             'name' => $record->name,
                             'email' => $record->email,
-                            'phone' => $record->phone,
-                            'password' => Hash::make($tempPassword), 
+                            'phone' => $record->phone ?? ($record->details['phone'] ?? null), // Fallback to details if main column empty
+                            'password' => Hash::make($tempPassword),  
                             'is_active' => true,
                             'must_change_password' => true, // Force password change
                             'email_verified_at' => now(),

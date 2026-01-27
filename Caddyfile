@@ -6,5 +6,11 @@
 :{$PORT:8080} {
 	root * /app/public
 	encode zstd br gzip
+	
+	# Allow larger request bodies for video uploads (up to 64MB)
+	request_body {
+		max_size 64MB
+	}
+	
 	php_server
 }

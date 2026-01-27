@@ -92,6 +92,7 @@ class ApplicationController extends Controller
             $application = Application::create([
                 'name' => $validated['firstName'] . ' ' . $validated['lastName'],
                 'email' => $validated['email'],
+                'phone' => $validated['phone'], // Save phone to main column
                 'type' => $type,
                 'status' => 'pending',
                 'details' => [
