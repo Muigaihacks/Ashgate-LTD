@@ -48,6 +48,14 @@ class CreateProperty extends CreateRecord
             $data['property_type_id'] = $propertyTypeId;
         }
         
+        // Set has_floor_plan and has_3d_tour flags if files are uploaded
+        if (isset($data['floor_plan_url']) && !empty($data['floor_plan_url'])) {
+            $data['has_floor_plan'] = true;
+        }
+        if (isset($data['3d_tour_url']) && !empty($data['3d_tour_url'])) {
+            $data['has_3d_tour'] = true;
+        }
+        
         return $data;
     }
 }

@@ -127,7 +127,45 @@ class PropertyResource extends Resource
                             ])
                             ->grid(3)
                             ->columnSpanFull(),
+                        Forms\Components\Repeater::make('videos')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\FileUpload::make('url')
+                                    ->label('Video')
+                                    ->acceptedFileTypes(['video/mp4', 'video/mov', 'video/avi', 'video/quicktime'])
+                                    ->directory('property-videos')
+                                    ->maxSize(51200), // 50MB
+                                Forms\Components\TextInput::make('title')
+                                    ->label('Video Title (Optional)'),
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Description (Optional)')
+                                    ->rows(2),
+                            ])
+                            ->grid(2)
+                            ->columnSpanFull()
+                            ->label('Videos'),
                     ]),
+
+                // Floor Plan & 3D Tour (for House, Apartment, Commercial only)
+                Forms\Components\Section::make('Floor Plan & 3D Tour')
+                    ->schema([
+                        Forms\Components\FileUpload::make('floor_plan_url')
+                            ->label('Floor Plan (PDF, JPG, PNG)')
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->directory('property-floor-plans')
+                            ->maxSize(10240) // 10MB
+                            ->helperText('Optional: Upload floor plan for House, Apartment, or Commercial properties')
+                            ->visible(fn ($get) => in_array($get('property_type'), ['House', 'Apartment', 'Commercial'])),
+                        Forms\Components\FileUpload::make('3d_tour_url')
+                            ->label('3D Tour (MP4, MOV, AVI, GLB, GLTF)')
+                            ->acceptedFileTypes(['video/mp4', 'video/mov', 'video/avi', 'model/gltf-binary', 'model/gltf+json'])
+                            ->directory('property-3d-tours')
+                            ->maxSize(102400) // 100MB
+                            ->helperText('Optional: Upload 3D tour video or model for House, Apartment, or Commercial properties')
+                            ->visible(fn ($get) => in_array($get('property_type'), ['House', 'Apartment', 'Commercial'])),
+                    ])
+                    ->columns(2)
+                    ->visible(fn ($get) => in_array($get('property_type'), ['House', 'Apartment', 'Commercial'])),
 
                 // Settings
                 Forms\Components\Section::make('Settings')

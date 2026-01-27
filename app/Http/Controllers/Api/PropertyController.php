@@ -299,8 +299,21 @@ class PropertyController extends Controller
                 $property->update(['has_3d_tour' => true]);
             }
 
+            // Handle video uploads
+            if ($request->hasFile('videos')) {
+                $sortOrder = 0;
+                foreach ($request->file('videos') as $video) {
+                    $path = $video->store('property-videos', 'public');
+                    \App\Models\PropertyVideo::create([
+                        'property_id' => $property->id,
+                        'url' => $path,
+                        'sort_order' => $sortOrder++,
+                    ]);
+                }
+            }
+
             // Load relationships for response
-            $property->load(['images', 'amenities', 'user:id,name,email,phone']);
+            $property->load(['images', 'videos', 'amenities', 'user:id,name,email,phone']);
             
             // Get user's application for company name and add contact details (if agent)
             if ($property->user) {

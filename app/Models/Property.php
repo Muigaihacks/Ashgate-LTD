@@ -73,4 +73,9 @@ class Property extends Model
     {
         return $this->hasMany(PropertyImage::class);
     }
+
+    public function videos(): HasMany
+    {
+        return $this->hasMany(PropertyVideo::class);
+    }
 }
