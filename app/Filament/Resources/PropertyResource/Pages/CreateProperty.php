@@ -56,6 +56,13 @@ class CreateProperty extends CreateRecord
             $data['has_3d_tour'] = true;
         }
         
+        // Filter out videos with null/empty URLs (prevent saving empty video entries)
+        if (isset($data['videos']) && is_array($data['videos'])) {
+            $data['videos'] = array_filter($data['videos'], function($video) {
+                return isset($video['url']) && !empty($video['url']);
+            });
+        }
+        
         return $data;
     }
 }

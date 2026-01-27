@@ -118,7 +118,9 @@ class PropertyResource extends Resource
                                 Forms\Components\FileUpload::make('url')
                                     ->label('Image')
                                     ->image()
+                                    ->disk('public')
                                     ->directory('property-images')
+                                    ->visibility('public')
                                     ->required(),
                                 Forms\Components\TextInput::make('alt_text')
                                     ->label('Alt Text (Optional)'),
@@ -132,9 +134,13 @@ class PropertyResource extends Resource
                             ->schema([
                                 Forms\Components\FileUpload::make('url')
                                     ->label('Video')
+                                    ->disk('public')
                                     ->acceptedFileTypes(['video/mp4', 'video/mov', 'video/avi', 'video/quicktime'])
                                     ->directory('property-videos')
-                                    ->maxSize(51200), // 50MB
+                                    ->visibility('public')
+                                    ->maxSize(51200) // 50MB
+                                    ->required()
+                                    ->deletable(false),
                                 Forms\Components\TextInput::make('title')
                                     ->label('Video Title (Optional)'),
                                 Forms\Components\Textarea::make('description')
@@ -143,7 +149,9 @@ class PropertyResource extends Resource
                             ])
                             ->grid(2)
                             ->columnSpanFull()
-                            ->label('Videos'),
+                            ->label('Videos')
+                            ->deletable(true)
+                            ->reorderable(false),
                     ]),
 
                 // Floor Plan & 3D Tour (for House, Apartment, Commercial only)
@@ -151,15 +159,19 @@ class PropertyResource extends Resource
                     ->schema([
                         Forms\Components\FileUpload::make('floor_plan_url')
                             ->label('Floor Plan (PDF, JPG, PNG)')
+                            ->disk('public')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->directory('property-floor-plans')
+                            ->visibility('public')
                             ->maxSize(10240) // 10MB
                             ->helperText('Optional: Upload floor plan for House, Apartment, or Commercial properties')
                             ->visible(fn ($get) => in_array($get('property_type'), ['House', 'Apartment', 'Commercial'])),
                         Forms\Components\FileUpload::make('3d_tour_url')
                             ->label('3D Tour (MP4, MOV, AVI, GLB, GLTF)')
+                            ->disk('public')
                             ->acceptedFileTypes(['video/mp4', 'video/mov', 'video/avi', 'model/gltf-binary', 'model/gltf+json'])
                             ->directory('property-3d-tours')
+                            ->visibility('public')
                             ->maxSize(102400) // 100MB
                             ->helperText('Optional: Upload 3D tour video or model for House, Apartment, or Commercial properties')
                             ->visible(fn ($get) => in_array($get('property_type'), ['House', 'Apartment', 'Commercial'])),

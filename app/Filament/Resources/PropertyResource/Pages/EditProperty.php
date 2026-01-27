@@ -32,6 +32,19 @@ class EditProperty extends EditRecord
             $data['has_3d_tour'] = false;
         }
         
+        // Filter out videos with null/empty URLs (prevent saving empty video entries)
+        if (isset($data['videos']) && is_array($data['videos'])) {
+            $data['videos'] = array_filter($data['videos'], function($video) {
+                return isset($video['url']) && !empty($video['url']);
+            });
+        }
+        
         return $data;
+    }
+    
+    protected function afterSave(): void
+    {
+        // Clean up any videos with null URLs (safety check)
+        $this->record->videos()->whereNull('url')->delete();
     }
 }
