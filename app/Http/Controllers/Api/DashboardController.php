@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -128,8 +129,21 @@ class DashboardController extends Controller
         $perPage = $request->get('per_page', 15);
         $properties = $query->paginate($perPage);
 
+        // Transform image URLs to full URLs
+        $propertiesData = $properties->items();
+        foreach ($propertiesData as $property) {
+            if ($property->images) {
+                $property->images->transform(function ($image) {
+                    if ($image->url && !filter_var($image->url, FILTER_VALIDATE_URL)) {
+                        $image->url = Storage::disk('public')->url($image->url);
+                    }
+                    return $image;
+                });
+            }
+        }
+
         return response()->json([
-            'data' => $properties->items(),
+            'data' => $propertiesData,
             'pagination' => [
                 'current_page' => $properties->currentPage(),
                 'last_page' => $properties->lastPage(),

@@ -140,7 +140,9 @@ class PropertyResource extends Resource
                                     ->visibility('public')
                                     ->maxSize(51200) // 50MB
                                     ->required()
-                                    ->deletable(false),
+                                    ->deletable(false)
+                                    ->downloadable()
+                                    ->openable(),
                                 Forms\Components\TextInput::make('title')
                                     ->label('Video Title (Optional)'),
                                 Forms\Components\Textarea::make('description')
@@ -151,7 +153,8 @@ class PropertyResource extends Resource
                             ->columnSpanFull()
                             ->label('Videos')
                             ->deletable(true)
-                            ->reorderable(false),
+                            ->reorderable(false)
+                            ->collapsible(),
                     ]),
 
                 // Floor Plan & 3D Tour (for House, Apartment, Commercial only)

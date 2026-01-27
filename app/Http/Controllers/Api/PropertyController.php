@@ -80,6 +80,16 @@ class PropertyController extends Controller
         // Add broker/company name and contact details to each property
         $propertiesData = $properties->items();
         foreach ($propertiesData as $property) {
+            // Transform image URLs to full URLs
+            if ($property->images) {
+                $property->images->transform(function ($image) {
+                    if ($image->url && !filter_var($image->url, FILTER_VALIDATE_URL)) {
+                        $image->url = Storage::disk('public')->url($image->url);
+                    }
+                    return $image;
+                });
+            }
+            
             if ($property->user) {
                 $application = \App\Models\Application::where('email', $property->user->email)
                     ->where('type', 'agent')
@@ -410,6 +420,16 @@ class PropertyController extends Controller
 
         // Increment view count
         $property->increment('view_count');
+
+        // Transform image URLs to full URLs
+        if ($property->images) {
+            $property->images->transform(function ($image) {
+                if ($image->url && !filter_var($image->url, FILTER_VALIDATE_URL)) {
+                    $image->url = Storage::disk('public')->url($image->url);
+                }
+                return $image;
+            });
+        }
 
         return response()->json([
             'data' => $property
