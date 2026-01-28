@@ -1,6 +1,6 @@
 # Laravel application Dockerfile for Railway deployment
 # Using FrankenPHP for production-ready serving
-FROM dunglas/frankenphp:latest-php8.3
+FROM dunglas/frankenphp:latest-php8.4
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
