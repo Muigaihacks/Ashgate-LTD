@@ -1918,11 +1918,22 @@ export default function HomePage() {
               <h4 className="text-lg font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-gray-300">
                 <li>Email: info@ashgate.co.ke</li>
-                <li>Phone: +254 700 580 379</li>
+                <li>Phone: +254 700 580 379 / +254 103 532 931</li>
                 <li>Nairobi, Kenya</li>
               </ul>
               {/* Social Media Icons */}
               <div className="mt-4 flex items-center gap-4">
+                <a 
+                  href="https://wa.me/254103532931" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors duration-200" 
+                  aria-label="WhatsApp"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.654-.698c.93.509 1.842.711 2.803.711l.003-.001c3.181 0 5.767-2.586 5.767-5.766.001-3.18-2.585-5.766-5.767-5.766zm9.918 1.582c-.91-1.596-2.225-2.91-3.816-3.823-1.841-1.051-3.933-1.614-6.092-1.614-7.02 0-12.728 5.717-12.728 12.74 0 2.268.58 4.442 1.621 6.366l-1.717 6.269 6.428-1.685c1.863.98 3.958 1.523 6.091 1.523h.005c7.02 0 12.728-5.717 12.728-12.741 0-2.158-.563-4.25-1.614-6.091zM12.029 19.312h-.006c-1.82 0-3.609-.489-5.163-1.412l-.369-.219-3.815 1.001 1.019-3.718-.242-.384c-1.016-1.612-1.552-3.487-1.552-5.418 0-5.546 4.511-10.057 10.063-10.057 2.68 0 5.206 1.045 7.102 2.943 1.892 1.896 2.936 4.417 2.938 7.101 0 5.547-4.513 10.058-10.066 10.058z"/>
+                  </svg>
+                </a>
                 <a 
                   href="https://www.facebook.com/ashgateproperty" 
                   target="_blank" 
