@@ -36,6 +36,49 @@ You'll need to:
 
 ---
 
+## ✅ Do this now: Configure Vercel (DNS already propagated)
+
+**Use this when DNS is green on whatsmydns but the app still isn’t loading at ashgate.co.ke.**
+
+1. Go to [Vercel](https://vercel.com) → your **Ashgate frontend project**.
+2. Open **Settings** → **Domains**.
+3. Click **Add** and add:
+   - `ashgate.co.ke`
+   - `www.ashgate.co.ke`
+4. For each domain, Vercel will check DNS:
+   - **Valid Configuration** → Vercel will serve the app there. Wait a few minutes for SSL, then open the URL.
+   - **Invalid / needs configuration** → See **"Fix: Invalid Configuration"** below and send the corrected records to your tech.
+5. After both show **Valid**, open **https://ashgate.co.ke** and **https://www.ashgate.co.ke** — your app should load. (If the backend is down, the UI will load but listings/data won’t.)
+
+---
+
+## 🔧 Fix: Invalid Configuration (both domains showing invalid)
+
+**Why it happens:** The earlier guide told the tech to use **CNAME for the root domain (@)**. Many registrars don’t support that, and **Vercel expects an A record for the root**, not a CNAME. So the records need to be updated.
+
+**What to do:**
+
+1. **Confirm what Vercel expects**  
+   In Vercel → **Settings** → **Domains**, click the domain that shows "Invalid Configuration". Vercel will show **Expected** (and sometimes **Current**) DNS. Use Vercel’s **Expected** values as the source of truth. If they match below, use these; if not, use what Vercel shows.
+
+2. **Correct DNS records** – use the **"DNS Records"** tab in Vercel (not "Vercel DNS") and ask your tech to set **exactly** what Vercel shows there. For this project, that is:
+
+   | Purpose           | Type   | Name  | Value                              |
+   |-------------------|--------|-------|-------------------------------------|
+   | ashgate.co.ke     | **A**  | `@`   | **216.198.79.1**                    |
+   | www.ashgate.co.ke | **CNAME** | `www` | **d318632d478e78ce.vercel-dns-017.com.** |
+
+   **Important:**
+   - **Root (ashgate.co.ke):** **A** record, name **@**, value **216.198.79.1**. Remove any CNAME for `@` if it exists.
+   - **www:** **CNAME**, name **www**, value **d318632d478e78ce.vercel-dns-017.com.** (Vercel gives a project-specific CNAME; the trailing dot is often required – use exactly what Vercel shows in your dashboard).
+
+3. **After the tech updates DNS:** Wait 5–15 minutes, then in Vercel click **Refresh** next to the domain. Status should change to **Valid Configuration**. Then open https://ashgate.co.ke and https://www.ashgate.co.ke to confirm.
+
+**Message you can send to your tech:**  
+*"Vercel is showing Invalid Configuration. We need to fix the DNS. Please set exactly: (1) **A** record, name **@**, value **216.198.79.1** for ashgate.co.ke – remove any CNAME on the root if it exists. (2) **CNAME** name **www** value **d318632d478e78ce.vercel-dns-017.com.** for www.ashgate.co.ke. Once updated, tell me and I’ll re-check."*
+
+---
+
 ## ▲ Step 1: Add Custom Domain to Vercel (Frontend)
 
 ### 1.1 Add Domain in Vercel
@@ -251,11 +294,27 @@ NEXT_PUBLIC_API_URL=https://api.ashgate.co.ke
 
 ## 📊 DNS Propagation Check
 
-Use these tools to check if DNS has propagated:
+### Quick check (did the tech guy finish DNS?)
 
-- [whatsmydns.net](https://www.whatsmydns.net) - Global DNS checker
-- [dnschecker.org](https://dnschecker.org) - DNS propagation checker
-- [mxtoolbox.com](https://mxtoolbox.com) - DNS lookup tool
+**Do this when someone says "DNS propagation is done" – takes ~1 minute.**
+
+1. Open **https://www.whatsmydns.net**
+2. In the search box, type: **`ashgate.co.ke`**
+3. Leave the type as **A** (or try **CNAME** if you're checking www).
+4. Click **Search**.
+
+**How to read it:**
+- **Green checkmarks in most/all locations** → Propagation is done. You’re good.
+- **Red X’s, "No record", or mixed results** → Not fully propagated yet. Wait and check again later (or ask tech to confirm the records were saved at the registrar).
+
+**Optional – check the API subdomain too:**  
+Search for **`api.ashgate.co.ke`**, type **CNAME**. Same idea: mostly green = done.
+
+---
+
+**Other tools (if you want a second opinion):**
+- [dnschecker.org](https://dnschecker.org) – same idea, enter domain and check
+- [mxtoolbox.com](https://mxtoolbox.com) – DNS lookup tool
 
 ---
 
