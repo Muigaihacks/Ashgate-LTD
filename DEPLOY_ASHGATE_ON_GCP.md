@@ -331,7 +331,7 @@ In the `>>>` prompt, paste this (change email and password as you like):
 $u = new \App\Models\User();
 $u->name = 'Admin';
 $u->email = 'admin@ashgate.co.ke';
-$u->password = bcrypt('YourSecurePassword');
+$u->password = bcrypt('MySecurePass123!');
 $u->email_verified_at = now();
 $u->role = 'admin';
 $u->is_active = true;
@@ -471,6 +471,40 @@ Test in the browser: **https://api.ashgate.co.ke** and **https://api.ashgate.co.
 
 # TROUBLESHOOTING
 
+**Connection via Cloud Identity-Aware Proxy Failed (Code: 4003) / SSH refused**  
+When you click **SSH** in the console and see “failed to connect to backend” or “Connection to VM is refused”, the browser uses **IAP** (Identity-Aware Proxy) to reach your VM. Fix it as follows:
+
+1. **Check the VM is running**  
+   Go to **Compute Engine** → **VM instances**. Confirm the VM (e.g. `ashgate-backend`) has a green status and is **Running**. If it’s stopped, click it → **START**.
+
+2. **Add a firewall rule for IAP SSH**  
+   The rule must be a **VPC firewall rule**, not a Network Firewall policy.  
+   - Go to **VPC network** → **Firewall** (in the left menu under “VPC network”, click **Firewall**). Do **not** use **Network Security** → **Firewall policies** — that is a different product and won’t fix IAP SSH.  
+   - Click **CREATE FIREWALL RULE**.  
+   - **Name:** e.g. `allow-iap-ssh`.  
+   - **Network:** default (or the network your VM uses).  
+   - **Direction:** Ingress.  
+   - **Targets:** “All instances in the network” or “Specified target tags” (if your VM has a tag, use it and select that tag).  
+   - **Source filter:** IP ranges.  
+   - **Source IP ranges:** `35.235.240.0/20` (Google’s IAP range for browser SSH).  
+   - **Protocols and ports:** “Specified protocols and ports”, check **tcp**, and enter **22**.  
+   - Click **Create**.  
+   Wait a minute, then try **SSH** from the VM instances page again.
+
+3. **“Retry without Cloud IAP”**  
+   This connects **directly** to your VM’s external IP on port 22 (no IAP tunnel). It’s fine to use. For it to work you need a **VPC** firewall rule (same place as above) allowing **tcp** port **22** from **0.0.0.0/0** (or your IP). Many projects already have `default-allow-ssh` that does this. If “Retry without IAP” works, you’re in; you can fix the 504 or use the VM until you move to Cloud Run.
+
+4. **Optional – allow SSH from anywhere**  
+   If you prefer one rule for both IAP and direct SSH: create a **VPC** firewall rule with **Source IP ranges** `0.0.0.0/0`, **tcp** port **22**. You can restrict it later.
+
+5. **If it still fails**  
+   - Use **“Retry without IAP”** (see step 3).  
+   - Or from your own computer (with [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed and logged in):  
+     `gcloud compute ssh ashgate-backend --zone=us-central1-a --project=YOUR_PROJECT_ID`  
+     (Replace zone and project with yours; this can use IAP or direct SSH depending on config.)
+
+After you can SSH in again, use the **504 Gateway Timeout** steps below to fix the admin panel if it’s still timing out.
+
 **502 Bad Gateway**  
 - Nginx can’t talk to PHP-FPM. Check the PHP version in the Nginx config:  
   `fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;`  
@@ -497,6 +531,62 @@ Test in the browser: **https://api.ashgate.co.ke** and **https://api.ashgate.co.
 - Confirm MySQL is running: `sudo systemctl status mysql`.  
 - In `.env`: DB_HOST=127.0.0.1, DB_DATABASE=ashgate, DB_USERNAME=ashgate, DB_PASSWORD=correct password. Then `php artisan config:clear` and `php artisan config:cache`.
 
+**504 Gateway Timeout** (nginx/1.18.0 message, static IP or api.ashgate.co.ke/admin not loading)  
+Nginx is running but the **upstream** (PHP-FPM or Laravel) is not responding in time. Work through these on the VM via SSH:
+
+1. **Check services**  
+   ```bash
+   sudo systemctl status nginx
+   sudo systemctl status php8.2-fpm   # or php8.1-fpm / php8.3-fpm to match your PHP version
+   sudo systemctl status mysql
+   ```  
+   If any are `inactive (dead)` or `failed`, start them:  
+   `sudo systemctl start php8.2-fpm` (and mysql/nginx as needed), then `sudo systemctl reload nginx`.
+
+2. **Confirm PHP-FPM socket matches Nginx**  
+   ```bash
+   ls /var/run/php/
+   ```  
+   You should see e.g. `php8.2-fpm.sock`. In `/etc/nginx/sites-available/ashgate`, the line `fastcgi_pass unix:/var/run/php/phpX.X-fpm.sock;` must use that exact socket. If the number is wrong, fix the config, run `sudo nginx -t`, then `sudo systemctl reload nginx`.
+
+3. **Check Nginx and PHP-FPM error logs**  
+   ```bash
+   sudo tail -50 /var/log/nginx/error.log
+   sudo tail -50 /var/log/php8.2-fpm.log   # or the log path for your PHP-FPM version
+   ```  
+   Look for "upstream timed out", "connect() failed", or PHP errors.
+
+4. **Check Laravel logs**  
+   ```bash
+   sudo tail -100 /var/www/ashgate/storage/logs/laravel.log
+   ```  
+   Look for database errors, out-of-memory, or long-running requests.
+
+5. **Test Laravel and DB from the VM**  
+   ```bash
+   cd /var/www/ashgate
+   php artisan tinker --execute="echo 'OK';"
+   ```  
+   If this hangs or errors, the app or DB is the problem (fix DB credentials or connectivity, or check memory).
+
+6. **Increase Nginx timeout (if the app is slow but working)**  
+   In `/etc/nginx/sites-available/ashgate`, inside the `location ~ \.php$ { ... }` block, add:  
+   `fastcgi_read_timeout 120;`  
+   Then run `sudo nginx -t` and `sudo systemctl reload nginx`.  
+   Prefer fixing the cause of slowness (DB, memory) rather than only raising timeouts.
+
+7. **VM resource check (e2-micro has 1 GB RAM)**  
+   ```bash
+   free -h
+   df -h
+   ```  
+   If memory is full or disk is full, the app can hang and cause 504s. Restart PHP-FPM and MySQL if needed:  
+   `sudo systemctl restart php8.2-fpm mysql` then `sudo systemctl reload nginx`.
+
+After any change, test again: **http://YOUR_STATIC_IP/** and **http://YOUR_STATIC_IP/admin**.
+
 ---
 
 You’re using **MySQL** on GCP (same as your MariaDB setup). No need to bring anything “back to PostgreSQL”; this guide and your existing `.env` and MariaDB schema are enough to deploy and run the admin at **https://api.ashgate.co.ke/admin**.
+
+For moving the API to Cloud Run, see **CLOUD_RUN_SETUP.md**.

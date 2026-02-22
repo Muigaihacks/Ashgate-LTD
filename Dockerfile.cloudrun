@@ -1,0 +1,73 @@
+# Ashgate Laravel API – Cloud Run (MySQL, same setup as VM)
+# Uses FrankenPHP; Caddyfile already listens on PORT (default 8080).
+FROM dunglas/frankenphp:php8.4
+
+# Install system dependencies (MySQL + existing)
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libicu-dev \
+    libpq-dev \
+    default-libmysqlclient-dev \
+    zip \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# PHP extensions: MySQL (for Cloud SQL) + intl, zip, etc. for Filament
+RUN install-php-extensions \
+    pdo_mysql \
+    mysqlnd \
+    intl \
+    zip \
+    opcache \
+    pcntl \
+    bcmath \
+    exif
+
+# Large file uploads (videos up to ~64MB)
+RUN echo "upload_max_filesize = 64M" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "post_max_size = 64M" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "max_file_uploads = 20" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini
+
+# Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --optimize-autoloader --no-dev --no-scripts --no-interaction
+
+COPY . .
+
+RUN composer dump-autoload --optimize
+
+RUN php artisan vendor:publish --tag=filament-config --force || true
+RUN php artisan filament:assets || true
+
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
+
+COPY Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 8080
+
+# Entrypoint: migrations run at container start (Cloud Run allows this)
+RUN echo '#!/bin/bash\n\
+set -e\n\
+php artisan migrate --force\n\
+php artisan db:seed --force 2>/dev/null || true\n\
+php artisan storage:link 2>/dev/null || true\n\
+php artisan filament:assets 2>/dev/null || true\n\
+php artisan config:clear\n\
+php artisan cache:clear\n\
+php artisan route:clear\n\
+php artisan view:clear\n\
+exec frankenphp run --config /etc/caddy/Caddyfile\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]
