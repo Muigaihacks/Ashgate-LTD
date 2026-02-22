@@ -139,7 +139,7 @@ You need the **Google Cloud SDK** (`gcloud`) on your computer. If you don’t ha
    ```
 4. Build using the **Cloud Run Dockerfile** (MySQL support) and push to Artifact Registry. Replace `REGION` and `ashgate` if you used different names (e.g. use `us-east1` if that’s your Cloud SQL/Cloud Run region):
    ```bash
-   gcloud builds submit --tag us-east1-docker.pkg.dev/Ashgate-production/ashgate/ashgate-api:latest -f Dockerfile.cloudrun .
+   gcloud builds submit --config cloudbuild.yaml .
    ```
    This can take several minutes. When it finishes, the image will be in Artifact Registry.
 
@@ -183,21 +183,85 @@ You need the **Google Cloud SDK** (`gcloud`) on your computer. If you don’t ha
    | `CORS_ALLOWED_ORIGINS` | `https://www.ashgate.co.ke,https://ashgate.co.ke,https://api.ashgate.co.ke` |
    | `SANCTUM_STATEFUL_DOMAINS` | `www.ashgate.co.ke,ashgate.co.ke,api.ashgate.co.ke` |
 
-   Add any others you had on the VM (e.g. `FILESYSTEM_DISK`, mail, R2 keys) as variables or via Secret Manager later.
+   Add **all** of the variables from the **Full environment variable list** below (including Mail, Cloudflare R2, and any Redis/Recaptcha you use). For secrets (APP_KEY, DB_PASSWORD, MAIL_PASSWORD, R2 keys), you can use **Secret Manager** (Reference a secret) instead of plain variables.
 
-**4.3 – Connect Cloud SQL**
+**4.3 – Where to get the values (you don’t have VM access)**
+
+- You **don’t** have the VM’s `.env` file. Use:
+  1. **ENV_FOR_GCP_REFERENCE.txt** in this repo – same list of variable names; fill from the sources below.
+  2. **Cloudflare R2:** Cloudflare dashboard → R2 → your bucket → **Manage R2 API Tokens** (or Object Storage → API Tokens). Copy Access Key ID, Secret Access Key; bucket name and endpoint/URL are on the bucket page.
+  3. **Mail:** Whoever set up **mail.ashgate.co.ke** (or your SMTP provider) has the host, port, username, password. Ask your tech or check the provider’s dashboard (e.g. cPanel email, Mailgun, SendGrid). Your local `.env` might have had these for dev – only use if they match production.
+  4. **APP_KEY:** If you had the backend on Railway before, the key might be in Railway’s env. Otherwise generate one locally: `php artisan key:generate --show` (in the repo) and use that.
+  5. **Redis:** On the VM you may have used Redis. On Cloud Run you can **skip Redis**: set `QUEUE_CONNECTION=database`, `CACHE_STORE=database`, `SESSION_DRIVER=database` (no REDIS_* needed). If you want Redis, use a hosted Redis (e.g. Redis Cloud, Upstash) and set REDIS_HOST (and REDIS_PASSWORD if required) to that service’s URL/host.
+  6. **Recaptcha (if used):** From [Google reCAPTCHA admin](https://www.google.com/recaptcha/admin) – same site key and secret you used on the VM.
+
+**4.4 – Full environment variable list (copy into Cloud Run)**
+
+Use this as the checklist. Set each in Cloud Run **Variables** (or **Secrets** for sensitive ones).
+
+| Variable | Where to get it / example value |
+|----------|----------------------------------|
+| `APP_NAME` | `Ashgate Limited` |
+| `APP_ENV` | `production` |
+| `APP_KEY` | From Railway or `php artisan key:generate --show` (Secret Manager recommended) |
+| `APP_DEBUG` | `false` |
+| `APP_URL` | `https://api.ashgate.co.ke` |
+| `DB_CONNECTION` | `mysql` |
+| `DB_HOST` | `127.0.0.1` (with Cloud SQL socket) |
+| `DB_PORT` | `3306` |
+| `DB_DATABASE` | `ashgate` |
+| `DB_USERNAME` | `ashgate` |
+| `DB_PASSWORD` | Same as Cloud SQL user `ashgate` (Secret Manager recommended) |
+| `DB_SOCKET` | `/cloudsql/PROJECT_ID:REGION:INSTANCE_ID` (e.g. `/cloudsql/ashgate-production:us-east1:ashgate-db`) |
+| `CORS_ALLOWED_ORIGINS` | `https://www.ashgate.co.ke,https://ashgate.co.ke,https://api.ashgate.co.ke` |
+| `SANCTUM_STATEFUL_DOMAINS` | `www.ashgate.co.ke,ashgate.co.ke,api.ashgate.co.ke` |
+| `FILESYSTEM_DISK` | `r2` (or `public` if not using R2 yet) |
+| `CLOUDFLARE_R2_ACCESS_KEY_ID` | Cloudflare R2 → API token (Secret Manager recommended) |
+| `CLOUDFLARE_R2_SECRET_ACCESS_KEY` | Cloudflare R2 → API token (Secret Manager recommended) |
+| `CLOUDFLARE_R2_BUCKET` | Your R2 bucket name |
+| `CLOUDFLARE_R2_URL` | R2 bucket public URL (e.g. `https://pub-xxx.r2.dev` or your custom domain) |
+| `CLOUDFLARE_R2_ENDPOINT` | R2 endpoint URL (e.g. `https://ACCOUNT_ID.r2.cloudflarestorage.com`) |
+| `MAIL_MAILER` | `smtp` |
+| `MAIL_HOST` | Your SMTP host (e.g. `mail.ashgate.co.ke`) |
+| `MAIL_PORT` | `465` or `587` (SSL vs TLS) |
+| `MAIL_USERNAME` | e.g. `info@ashgate.co.ke` |
+| `MAIL_PASSWORD` | SMTP password from your mail provider (Secret Manager recommended) |
+| `MAIL_ENCRYPTION` | `ssl` (port 465) or `tls` (port 587) |
+| `MAIL_FROM_ADDRESS` | `info@ashgate.co.ke` |
+| `MAIL_FROM_NAME` | `Ashgate Limited` |
+| `QUEUE_CONNECTION` | `database` (no Redis on Cloud Run unless you add hosted Redis) |
+| `CACHE_STORE` | `database` |
+| `SESSION_DRIVER` | `database` |
+| `REDIS_HOST` | Only if using hosted Redis; else omit or leave default |
+| `REDIS_PASSWORD` | Only if using hosted Redis |
+| `REDIS_PORT` | `6379` if using Redis |
+| `ACTIVITY_LOGGER_ENABLED` | `true` |
+| `ACTIVITY_LOGGER_TABLE_NAME` | `activity_log` |
+| `RECAPTCHA_SITE_KEY` | From Google reCAPTCHA admin (if you use it) |
+| `RECAPTCHA_SECRET_KEY` | From Google reCAPTCHA admin (if you use it) |
+| `HASH_DRIVER` | `argon2id` (optional) |
+
+**4.4a – Common clarifications**
+
+- **Volumes:** You do **not** need to set up the Volumes section for photos/videos. On Railway, the container disk was ephemeral so uploads were lost on redeploy. Here you store files in **Cloudflare R2** (via `FILESYSTEM_DISK=r2` and the R2 env vars). The app uploads to R2, not to the container filesystem, so nothing in the container needs to persist. Leave Volumes empty unless you have another reason to mount storage (e.g. a GCP bucket).
+- **Geoapify, Maptiler, etc.:** Those keys live in your **frontend** (e.g. `frontend/.env.local`) and are used by the Next.js/app that runs on Vercel or elsewhere. The Cloud Run service is the **Laravel API only**. The API does not use map keys, so do **not** add Geoapify/Maptiler (or any frontend-only keys) to Cloud Run.
+- **Mail – Office 365:** Laravel has no separate `office365` mailer. For Office 365 / Outlook you use **SMTP**: set `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.office365.com`, and your Office 365 email and app password (or account password) for `MAIL_USERNAME` and `MAIL_PASSWORD`. Port is usually `587` with `MAIL_ENCRYPTION=tls`. So “Office 365” = same as SMTP with Office 365’s host and credentials.
+- **MAIL_PASSWORD (and other secrets):** In Cloud Run’s Variables (or Secret Manager), enter the **raw** password only. Do **not** include double quotes `"` around the value—those would be treated as part of the password and authentication would fail.
+- **DB_SOCKET:** Cloud SQL shows the connection name as `ashgate-production:us-east1:ashgate-db` (no prefix). For Laravel you must use the **full Unix socket path**. Set `DB_SOCKET` to **`/cloudsql/ashgate-production:us-east1:ashgate-db`** (with the `/cloudsql/` prefix). So: take the connection name from the console and put `/cloudsql/` in front of it.
+
+**4.5 – Connect Cloud SQL**
 
 1. Open the **Connections** tab (or **Connections** in the create form).
 2. Under **Cloud SQL connections**, click **ADD CONNECTION**.
 3. Select your instance (e.g. **ashgate-db**).
 4. Confirm.
 
-**4.4 – Create the service**
+**4.6 – Create the service**
 
 1. Leave **Authentication** as **Require authentication** if you want only logged-in/invoked access, or set to **Allow unauthenticated invocations** so the API and admin can be reached by the browser (you’ll need this for **https://api.ashgate.co.ke** and **https://api.ashgate.co.ke/admin**).
 2. Click **CREATE**. Wait until the service is deployed and you see a green tick and a URL like `https://ashgate-api-xxxxx-uc.a.run.app`.
 
-**4.5 – Test**
+**4.7 – Test**
 
 Open that URL in the browser. You should see the Laravel welcome page or your app. Then open **https://YOUR_SERVICE_URL/admin**. The first time, the container will run migrations (in the entrypoint). If you see a login page, the app is running; we add the admin user in Part 6.
 
