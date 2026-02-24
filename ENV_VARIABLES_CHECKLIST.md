@@ -88,7 +88,11 @@ NEXT_PUBLIC_API_URL=https://your-railway-app.railway.app
 NEXT_PUBLIC_MAPTILER_KEY=your_maptiler_key
 NEXT_PUBLIC_GEOAPIFY_KEY=your_geoapify_key
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+NEXT_PUBLIC_FB_PIXEL_ID=your_facebook_pixel_id
 ```
+
+**Analytics & marketing:** The cookie banner controls when these run. If set, Google Analytics (GA4) loads only when the user accepts **Analytics** cookies; Facebook Pixel loads only when the user accepts **Marketing** cookies. Get GA4 ID from [Google Analytics](https://analytics.google.com/) (Admin → Data Streams → your web stream). Get Pixel ID from [Meta Events Manager](https://business.facebook.com/events_manager).
 
 **Important:** 
 - Replace `https://your-railway-app.railway.app` with your actual Railway URL

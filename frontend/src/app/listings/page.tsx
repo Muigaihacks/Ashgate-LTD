@@ -442,17 +442,18 @@ function TabsLite({ listing }: { listing: any }) {
       const center = [listing?.coords?.lng ?? 36.8219, listing?.coords?.lat ?? -1.2921];
       const map = new maplibregl.Map({
         container: mapRef.current!,
-        style: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
+        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
         center,
         zoom: 13,
       });
       new maplibregl.Marker().setLngLat(center).addTo(map);
       mapInstanceRef.current = map;
-      map.on('error', (e: { error?: { message?: string } }) => {
-        // Only show error if it's a critical map loading error, not layer-related
-        if (e.error && e.error.message && !e.error.message.includes('source')) {
-          setMapToast('Map failed to load. Check your internet or API key.');
-        }
+      map.on('error', (e: { error?: { message?: string }; sourceDataType?: string }) => {
+        const msg = e.error?.message ?? '';
+        if (e.sourceDataType) return;
+        if (msg && msg.includes('source')) return;
+        console.error('[MapTiler]', e.error || e);
+        setMapToast(msg ? `Map: ${msg.slice(0, 80)}${msg.length > 80 ? '…' : ''}` : 'Map failed to load. Check NEXT_PUBLIC_MAPTILER_KEY and MapTiler referrers (see MAP_SETUP.md).');
       });
       
       // Fetch and display amenities using Geoapify Places API

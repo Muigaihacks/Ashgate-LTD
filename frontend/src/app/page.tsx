@@ -87,6 +87,8 @@ export default function HomePage() {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [showCookieSettings, setShowCookieSettings] = useState(false);
+  const [cookieAnalytics, setCookieAnalytics] = useState(true);
+  const [cookieMarketing, setCookieMarketing] = useState(true);
   const [videoFade, setVideoFade] = useState(true); // For smooth video transitions
   const [isManuallyScrolling, setIsManuallyScrolling] = useState(false);
   
@@ -608,19 +610,39 @@ export default function HomePage() {
         analytics: true,
         marketing: true
       }));
+      window.dispatchEvent(new Event('ashgate-cookie-consent-updated'));
     }
     setShowCookieBanner(false);
     setShowCookieSettings(false);
   };
 
   const manageCookies = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const prefs = localStorage.getItem('ashgate_cookie_preferences');
+        const p = prefs ? JSON.parse(prefs) : { analytics: true, marketing: true };
+        setCookieAnalytics(!!p.analytics);
+        setCookieMarketing(!!p.marketing);
+      } catch {
+        setCookieAnalytics(true);
+        setCookieMarketing(true);
+      }
+    }
     setShowCookieSettings(true);
   };
 
   const saveCookiePreferences = () => {
-    // This will be implemented when lawyer provides final policy
-    // For now, just accept all
-    acceptCookies();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ashgate_cookie_consent', 'accepted');
+      localStorage.setItem('ashgate_cookie_preferences', JSON.stringify({
+        necessary: true,
+        analytics: cookieAnalytics,
+        marketing: cookieMarketing
+      }));
+      window.dispatchEvent(new Event('ashgate-cookie-consent-updated'));
+    }
+    setShowCookieSettings(false);
+    setShowCookieBanner(false);
   };
 
   // Auto-scroll featured listings - seamless infinite loop with smooth animation
@@ -2070,19 +2092,19 @@ export default function HomePage() {
               <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 mb-1">Analytics Cookies</h4>
-                  <p className="text-sm text-gray-600">Help us understand how visitors interact with our website by collecting and reporting information anonymously.</p>
+                  <p className="text-sm text-gray-600">Help us understand how visitors interact with our website by collecting and reporting information anonymously (e.g. Google Analytics).</p>
                 </div>
                 <div className="ml-4">
-                  <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                  <input type="checkbox" checked={cookieAnalytics} onChange={(e) => setCookieAnalytics(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                 </div>
               </div>
               <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 mb-1">Marketing Cookies</h4>
-                  <p className="text-sm text-gray-600">Used to track visitors across websites to display relevant advertisements and measure campaign effectiveness.</p>
+                  <p className="text-sm text-gray-600">Used to track visitors across websites to display relevant advertisements and measure campaign effectiveness (e.g. Facebook Pixel).</p>
                 </div>
                 <div className="ml-4">
-                  <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                  <input type="checkbox" checked={cookieMarketing} onChange={(e) => setCookieMarketing(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                 </div>
               </div>
             </div>
@@ -3019,17 +3041,18 @@ function Tabs({ selectedListing }: { selectedListing: any }) {
       const center = [selectedListing?.coords?.lng ?? 36.8219, selectedListing?.coords?.lat ?? -1.2921];
       const map = new maplibregl.Map({
         container: mapRef.current!,
-        style: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
+        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
         center,
         zoom: 13,
       });
       new maplibregl.Marker().setLngLat(center).addTo(map);
       mapInstanceRef.current = map;
-      map.on('error', (e: { error?: { message?: string } }) => {
-        // Only show error if it's a critical map loading error, not layer-related
-        if (e.error && e.error.message && !e.error.message.includes('source')) {
-          setMapToast('Map failed to load. Check your internet or API key.');
-        }
+      map.on('error', (e: { error?: { message?: string }; sourceDataType?: string }) => {
+        const msg = e.error?.message ?? '';
+        if (e.sourceDataType) return; // layer/source load noise
+        if (msg && msg.includes('source')) return;
+        console.error('[MapTiler]', e.error || e);
+        setMapToast(msg ? `Map: ${msg.slice(0, 80)}${msg.length > 80 ? '…' : ''}` : 'Map failed to load. Check NEXT_PUBLIC_MAPTILER_KEY and MapTiler referrers (see MAP_SETUP.md).');
       });
       
       // Fetch and display amenities using Geoapify Places API

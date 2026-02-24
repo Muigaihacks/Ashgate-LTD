@@ -334,6 +334,9 @@ If you prefer to run it locally:
 
 8. After DNS has propagated (can take up to 24–48 hours, often minutes), Cloud Run will finish provisioning the certificate and **https://api.ashgate.co.ke** (and **https://api.ashgate.co.ke/admin**) will work with **HTTPS automatically**. No Certbot needed.
 
+**Example DNS record (ashgate.co.ke):**  
+`api.ashgate.co.ke` → **CNAME** → `ghs.googlehosted.com.` (exact target is shown in the Cloud Run console when you add the mapping.)
+
 ---
 
 # PART 7: Update Laravel APP_URL (if needed)

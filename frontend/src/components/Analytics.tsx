@@ -1,68 +1,91 @@
 'use client';
 
-import Script from 'next/script';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-/**
- * Analytics Placeholder Component
- * 
- * Once you have your Measurement IDs, add them to your .env file:
- * NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
- * NEXT_PUBLIC_FB_PIXEL_ID=XXXXXXXXXXXXXXX
- */
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
 
-export default function Analytics() {
-  const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
-
-  return (
-    <>
-      {/* Google Analytics 4 */}
-      {GA_MEASUREMENT_ID && (
-        <>
-          <Script
-            strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          />
-          <Script
-            id="google-analytics"
-            strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${GA_MEASUREMENT_ID}', {
-                  page_path: window.location.pathname,
-                });
-              `,
-            }}
-          />
-        </>
-      )}
-
-      {/* Facebook Pixel */}
-      {FB_PIXEL_ID && (
-        <Script
-          id="fb-pixel"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              !function(f,b,e,v,n,t,s)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', '${FB_PIXEL_ID}');
-              fbq('track', 'PageView');
-            `,
-          }}
-        />
-      )}
-    </>
-  );
+function getConsent(): { analytics: boolean; marketing: boolean } {
+  if (typeof window === 'undefined') return { analytics: false, marketing: false };
+  const consent = localStorage.getItem('ashgate_cookie_consent');
+  if (consent !== 'accepted') return { analytics: false, marketing: false };
+  try {
+    const prefs = localStorage.getItem('ashgate_cookie_preferences');
+    const p = prefs ? JSON.parse(prefs) : {};
+    return { analytics: !!p.analytics, marketing: !!p.marketing };
+  } catch {
+    return { analytics: false, marketing: false };
+  }
 }
 
+function loadGoogleAnalytics() {
+  if (!GA_MEASUREMENT_ID || (window as any).__ashgate_ga_loaded) return;
+  (window as any).__ashgate_ga_loaded = true;
+  (window as any).dataLayer = (window as any).dataLayer || [];
+  function gtag(...args: any[]) {
+    (window as any).dataLayer.push(args);
+  }
+  (window as any).gtag = gtag;
+  gtag('js', new Date());
+  gtag('config', GA_MEASUREMENT_ID, { page_path: window.location.pathname });
+
+  const s1 = document.createElement('script');
+  s1.async = true;
+  s1.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  document.head.appendChild(s1);
+}
+
+function loadFacebookPixel() {
+  if (!FB_PIXEL_ID || (window as any).__ashgate_fb_loaded) return;
+  (window as any).__ashgate_fb_loaded = true;
+  (window as any).fbq = (window as any).fbq || function (...args: any[]) {
+    ((window as any).fbq.queue = (window as any).fbq.queue || []).push(args);
+  };
+  (window as any).fbq.push = (window as any).fbq;
+  (window as any).fbq.loaded = true;
+  (window as any).fbq.version = '2.0';
+  (window as any).fbq.queue = [];
+  (window as any).fbq('init', FB_PIXEL_ID);
+  (window as any).fbq('track', 'PageView');
+
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://connect.facebook.net/en_US/fbevents.js';
+  document.head.appendChild(s);
+}
+
+/**
+ * Loads analytics and marketing scripts only when the user has given consent.
+ * Listens for 'ashgate-cookie-consent-updated' so scripts load immediately after Accept without reload.
+ *
+ * SEO note: Cookies/analytics don't directly improve search rankings. Analytics gives you data
+ * (search terms, landing pages, behavior) so you can improve content and UX, which can improve SEO.
+ */
+export default function Analytics() {
+  const loadedRef = useRef({ analytics: false, marketing: false });
+
+  useEffect(() => {
+    const run = () => {
+      const { analytics, marketing } = getConsent();
+      if (analytics && GA_MEASUREMENT_ID && !loadedRef.current.analytics) {
+        loadedRef.current.analytics = true;
+        loadGoogleAnalytics();
+      }
+      if (marketing && FB_PIXEL_ID && !loadedRef.current.marketing) {
+        loadedRef.current.marketing = true;
+        loadFacebookPixel();
+      }
+    };
+
+    run();
+
+    const handler = () => {
+      loadedRef.current = { analytics: false, marketing: false };
+      run();
+    };
+    window.addEventListener('ashgate-cookie-consent-updated', handler);
+    return () => window.removeEventListener('ashgate-cookie-consent-updated', handler);
+  }, []);
+
+  return null;
+}
