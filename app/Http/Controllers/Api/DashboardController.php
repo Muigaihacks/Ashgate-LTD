@@ -135,7 +135,7 @@ class DashboardController extends Controller
             if ($property->images) {
                 $property->images->transform(function ($image) {
                     if ($image->url && !filter_var($image->url, FILTER_VALIDATE_URL)) {
-                        $image->url = Storage::disk('public')->url($image->url);
+                        $image->url = Storage::disk(config('filesystems.default'))->url($image->url);
                     }
                     return $image;
                 });

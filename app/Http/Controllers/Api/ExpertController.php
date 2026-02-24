@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExpertProfile;
 use App\Models\ExpertCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ExpertController extends Controller
 {
@@ -68,8 +69,10 @@ class ExpertController extends Controller
         $perPage = $request->get('per_page', 15);
         $experts = $query->paginate($perPage);
 
+        $expertsData = collect($experts->items())->map(fn ($expert) => $this->expertWithResolvedUrls($expert));
+
         return response()->json([
-            'data' => $experts->items(),
+            'data' => $expertsData,
             'pagination' => [
                 'current_page' => $experts->currentPage(),
                 'last_page' => $experts->lastPage(),
@@ -93,8 +96,27 @@ class ExpertController extends Controller
             ->findOrFail($id);
 
         return response()->json([
-            'data' => $expert
+            'data' => $this->expertWithResolvedUrls($expert)
         ]);
+    }
+
+    /**
+     * Resolve document and logo paths to full storage URLs (e.g. R2).
+     */
+    private function expertWithResolvedUrls(ExpertProfile $expert): array
+    {
+        $disk = Storage::disk(config('filesystems.default'));
+        $documents = collect($expert->documents ?? [])->map(function ($path) use ($disk) {
+            return str_starts_with((string) $path, 'http') ? $path : $disk->url($path);
+        })->all();
+        $logo = $expert->logo
+            ? (str_starts_with($expert->logo, 'http') ? $expert->logo : $disk->url($expert->logo))
+            : null;
+
+        $arr = $expert->toArray();
+        $arr['documents'] = $documents;
+        $arr['logo'] = $logo;
+        return $arr;
     }
 }
 

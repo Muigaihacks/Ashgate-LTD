@@ -61,7 +61,9 @@ class NewsArticleResource extends Resource
 
                                 Forms\Components\RichEditor::make('content')
                                     ->required()
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull()
+                                    ->fileAttachmentsDisk(config('filesystems.default'))
+                                    ->fileAttachmentsDirectory('news-content'),
                             ]),
                     ])
                     ->columnSpan(['lg' => 2]),
@@ -87,6 +89,7 @@ class NewsArticleResource extends Resource
                             ->schema([
                                 Forms\Components\FileUpload::make('featured_image')
                                     ->image()
+                                    ->disk(config('filesystems.default'))
                                     ->directory('news-images')
                                     ->imageEditor(),
                             ]),

@@ -35,6 +35,7 @@ class TestimonialResource extends Resource
                         Forms\Components\FileUpload::make('image')
                             ->avatar()
                             ->image()
+                            ->disk(config('filesystems.default'))
                             ->directory('testimonials')
                             ->imageEditor(),
                         Forms\Components\TextInput::make('rating')

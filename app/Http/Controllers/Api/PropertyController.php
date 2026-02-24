@@ -84,7 +84,7 @@ class PropertyController extends Controller
             if ($property->images) {
                 $property->images->transform(function ($image) {
                     if ($image->url && !filter_var($image->url, FILTER_VALIDATE_URL)) {
-                        $image->url = Storage::disk('public')->url($image->url);
+                        $image->url = Storage::disk(config('filesystems.default'))->url($image->url);
                     }
                     return $image;
                 });
@@ -94,7 +94,7 @@ class PropertyController extends Controller
             if ($property->videos) {
                 $property->videos->transform(function ($video) {
                     if ($video->url && !filter_var($video->url, FILTER_VALIDATE_URL)) {
-                        $video->url = Storage::disk('public')->url($video->url);
+                        $video->url = Storage::disk(config('filesystems.default'))->url($video->url);
                     }
                     return $video;
                 });
@@ -280,7 +280,7 @@ class PropertyController extends Controller
                 }
                 
                 foreach ($photoFiles as $photo) {
-                    $path = $photo->store('property-images', 'public');
+                    $path = $photo->store('property-images', config('filesystems.default'));
                     PropertyImage::create([
                         'property_id' => $property->id,
                         'url' => $path,
@@ -307,14 +307,14 @@ class PropertyController extends Controller
 
             // Handle floor plan upload (for House/Apartment/Commercial)
             if ($request->hasFile('floor_plan')) {
-                $floorPlanPath = $request->file('floor_plan')->store('property-floor-plans', 'public');
+                $floorPlanPath = $request->file('floor_plan')->store('property-floor-plans', config('filesystems.default'));
                 $property->update(['floor_plan_url' => $floorPlanPath]);
                 $property->update(['has_floor_plan' => true]);
             }
 
             // Handle 3D tour upload (for House/Apartment/Commercial)
             if ($request->hasFile('3d_tour')) {
-                $tourPath = $request->file('3d_tour')->store('property-3d-tours', 'public');
+                $tourPath = $request->file('3d_tour')->store('property-3d-tours', config('filesystems.default'));
                 $property->update(['3d_tour_url' => $tourPath]);
                 $property->update(['has_3d_tour' => true]);
             }
@@ -323,7 +323,7 @@ class PropertyController extends Controller
             if ($request->hasFile('videos')) {
                 $sortOrder = 0;
                 foreach ($request->file('videos') as $video) {
-                    $path = $video->store('property-videos', 'public');
+                    $path = $video->store('property-videos', config('filesystems.default'));
                     \App\Models\PropertyVideo::create([
                         'property_id' => $property->id,
                         'url' => $path,
@@ -435,7 +435,7 @@ class PropertyController extends Controller
         if ($property->images) {
             $property->images->transform(function ($image) {
                 if ($image->url && !filter_var($image->url, FILTER_VALIDATE_URL)) {
-                    $image->url = Storage::disk('public')->url($image->url);
+                    $image->url = Storage::disk(config('filesystems.default'))->url($image->url);
                 }
                 return $image;
             });
@@ -445,7 +445,7 @@ class PropertyController extends Controller
         if ($property->videos) {
             $property->videos->transform(function ($video) {
                 if ($video->url && !filter_var($video->url, FILTER_VALIDATE_URL)) {
-                    $video->url = Storage::disk('public')->url($video->url);
+                    $video->url = Storage::disk(config('filesystems.default'))->url($video->url);
                 }
                 return $video;
             });
@@ -515,7 +515,7 @@ class PropertyController extends Controller
                 $sortOrder = $maxSortOrder + 1;
                 
                 foreach ($request->file('photos') as $photo) {
-                    $path = $photo->store('property-images', 'public');
+                    $path = $photo->store('property-images', config('filesystems.default'));
                     PropertyImage::create([
                         'property_id' => $property->id,
                         'url' => $path,
@@ -529,20 +529,20 @@ class PropertyController extends Controller
             // Handle floor plan upload update
             if ($request->hasFile('floor_plan')) {
                 // Delete old floor plan if exists
-                if ($property->floor_plan_url && Storage::disk('public')->exists($property->floor_plan_url)) {
-                    Storage::disk('public')->delete($property->floor_plan_url);
+                if ($property->floor_plan_url && Storage::disk(config('filesystems.default'))->exists($property->floor_plan_url)) {
+                    Storage::disk(config('filesystems.default'))->delete($property->floor_plan_url);
                 }
-                $floorPlanPath = $request->file('floor_plan')->store('property-floor-plans', 'public');
+                $floorPlanPath = $request->file('floor_plan')->store('property-floor-plans', config('filesystems.default'));
                 $property->update(['floor_plan_url' => $floorPlanPath, 'has_floor_plan' => true]);
             }
 
             // Handle 3D tour upload update
             if ($request->hasFile('3d_tour')) {
                 // Delete old 3D tour if exists
-                if ($property->{'3d_tour_url'} && Storage::disk('public')->exists($property->{'3d_tour_url'})) {
-                    Storage::disk('public')->delete($property->{'3d_tour_url'});
+                if ($property->{'3d_tour_url'} && Storage::disk(config('filesystems.default'))->exists($property->{'3d_tour_url'})) {
+                    Storage::disk(config('filesystems.default'))->delete($property->{'3d_tour_url'});
                 }
-                $tourPath = $request->file('3d_tour')->store('property-3d-tours', 'public');
+                $tourPath = $request->file('3d_tour')->store('property-3d-tours', config('filesystems.default'));
                 $property->update(['3d_tour_url' => $tourPath, 'has_3d_tour' => true]);
             }
 
@@ -609,8 +609,8 @@ class PropertyController extends Controller
         try {
             // Delete associated images from storage
             foreach ($property->images as $image) {
-                if (Storage::disk('public')->exists($image->url)) {
-                    Storage::disk('public')->delete($image->url);
+                if (Storage::disk(config('filesystems.default'))->exists($image->url)) {
+                    Storage::disk(config('filesystems.default'))->delete($image->url);
                 }
             }
 

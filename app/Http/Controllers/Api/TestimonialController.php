@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TestimonialController extends Controller
 {
@@ -38,7 +39,7 @@ class TestimonialController extends Controller
                 'image' => $testimonial->image 
                     ? (str_starts_with($testimonial->image, 'http') 
                         ? $testimonial->image 
-                        : asset('storage/' . $testimonial->image))
+                        : Storage::disk(config('filesystems.default'))->url($testimonial->image))
                     : null,
                 'initials' => $initials,
                 'platform' => $testimonial->platform,

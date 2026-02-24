@@ -69,6 +69,7 @@ class ExpertProfileResource extends Resource
                     ->schema([
                         Forms\Components\FileUpload::make('documents')
                             ->multiple()
+                            ->disk(config('filesystems.default'))
                             ->directory('expert-documents')
                             ->downloadable()
                             ->columnSpanFull(),

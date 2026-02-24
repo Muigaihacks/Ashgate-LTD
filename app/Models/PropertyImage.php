@@ -43,9 +43,9 @@ class PropertyImage extends Model
             return $url;
         }
         
-        // Otherwise, generate storage URL
+        // Otherwise, generate storage URL using default disk (e.g. R2 or public)
         try {
-            return Storage::disk('public')->url($url);
+            return Storage::disk(config('filesystems.default'))->url($url);
         } catch (\Exception $e) {
             // Fallback to manual URL construction
             $baseUrl = rtrim(config('app.url'), '/');

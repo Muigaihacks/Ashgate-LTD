@@ -145,6 +145,8 @@ You need the **Google Cloud SDK** (`gcloud`) on your computer. If you don’t ha
 
 **If you don’t have gcloud on your PC:** In the Cloud Console go to **Cloud Build** → **History** and use **Submit build** (trigger from GitHub or upload source). Use **Dockerfile.cloudrun** as the Dockerfile path and the same tag.
 
+**Deploying new code later:** Cloud Run serves a **container image**. To get new code live: (1) Push your changes to GitHub. (2) Build a **new** image from the repo: `gcloud builds submit --config cloudbuild.yaml .` (from the repo root). (3) In Cloud Run, open the **ashgate-api** service → **Edit & deploy new revision** → leave the image as **latest** (Cloud Build will have updated the `latest` tag) or select the new image/tag → **Deploy**. A plain “Redeploy” without building a new image keeps the old code.
+
 ---
 
 # PART 4: Deploy the service to Cloud Run

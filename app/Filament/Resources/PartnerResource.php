@@ -30,6 +30,7 @@ class PartnerResource extends Resource
                             ->maxLength(255),
                         Forms\Components\FileUpload::make('logo')
                             ->image()
+                            ->disk(config('filesystems.default'))
                             ->directory('partners')
                             ->preserveFilenames()
                             ->required(),
