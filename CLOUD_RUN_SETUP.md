@@ -149,6 +149,18 @@ You need the **Google Cloud SDK** (`gcloud`) on your computer. If you don’t ha
 
 ---
 
+**Quick rebuild & redeploy (after pushing to GitHub):**
+
+1. **From your machine** (in the Ashgate-LTD repo):  
+   `cd /path/to/Ashgate-LTD` then `gcloud config set project Ashgate-production` and `gcloud builds submit --config cloudbuild.yaml .`  
+   Wait for the build to finish. The new image is in Artifact Registry as `latest`.
+
+2. **Deploy:** Cloud Console → **Cloud Run** → **ashgate-api** → **EDIT & DEPLOY NEW REVISION** → confirm container image (e.g. `REGION-docker.pkg.dev/Ashgate-production/ashgate/ashgate-api:latest`) → **DEPLOY**.
+
+3. **Verify:** Visit `https://api.ashgate.co.ke`, log in, add a listing or upload a file to confirm new code and R2.
+
+---
+
 # PART 4: Deploy the service to Cloud Run
 
 **4.1 – Create the service**
