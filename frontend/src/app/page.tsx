@@ -1987,13 +1987,22 @@ export default function HomePage() {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a 
-                  href="#" 
-                  className="text-gray-300 hover:text-white transition-colors duration-200 opacity-50 cursor-not-allowed" 
-                  aria-label="YouTube (Coming Soon)"
-                  title="YouTube channel coming soon"
+                  href="https://www.tiktok.com/@infosvkkw9" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors duration-200"
+                  aria-label="TikTok"
+                  title="Follow us on TikTok"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  {/* TikTok logo */}
+                  <svg
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    role="img"
+                    fill="currentColor"
+                  >
+                    <path d="M16.75 3.5c.37 1.06 1.02 1.96 1.84 2.65A6.1 6.1 0 0 0 21 7.12v2.36a6.43 6.43 0 0 1-3.33-1.01 6.7 6.7 0 0 1-1.28-1.05v7.33c0 3.38-2.73 6.25-6.3 6.25C6.73 20 4 17.13 4 13.75 4 10.37 6.73 7.5 10.3 7.5c.34 0 .68.03 1.01.08v2.46a3.7 3.7 0 0 0-1.01-.14 3.44 3.44 0 0 0-3.45 3.35c0 1.84 1.5 3.34 3.45 3.34 1.9 0 3.45-1.5 3.45-3.34V3h3.5c.16.18.25.36.25.5Z" />
                   </svg>
                 </a>
               </div>
