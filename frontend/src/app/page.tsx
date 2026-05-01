@@ -1550,6 +1550,7 @@ export default function HomePage() {
                 <div 
                   key={index} 
                   className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white border-opacity-30 hover:border-primary-300 group relative z-0"
+                  onClick={() => router.push(`/listings?type=sale&category=${type.apiName}`)}
                 >
                   <div className="text-primary-600 mb-3 group-hover:text-primary-700 transition-colors duration-200">
                     {type.icon}
