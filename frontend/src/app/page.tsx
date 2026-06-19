@@ -30,6 +30,7 @@ import {
   ArrowUp,
   Facebook,
   Instagram,
+  Linkedin,
   ChevronLeft,
   ChevronRight,
   X,
@@ -2005,6 +2006,15 @@ export default function HomePage() {
                   >
                     <path d="M16.75 3.5c.37 1.06 1.02 1.96 1.84 2.65A6.1 6.1 0 0 0 21 7.12v2.36a6.43 6.43 0 0 1-3.33-1.01 6.7 6.7 0 0 1-1.28-1.05v7.33c0 3.38-2.73 6.25-6.3 6.25C6.73 20 4 17.13 4 13.75 4 10.37 6.73 7.5 10.3 7.5c.34 0 .68.03 1.01.08v2.46a3.7 3.7 0 0 0-1.01-.14 3.44 3.44 0 0 0-3.45 3.35c0 1.84 1.5 3.34 3.45 3.34 1.9 0 3.45-1.5 3.45-3.34V3h3.5c.16.18.25.36.25.5Z" />
                   </svg>
+                </a>
+                <a 
+                  href="https://www.linkedin.com/in/ashgate-ltd-kenya-131869409/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-[#0A66C2] transition-colors duration-200" 
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-5 h-5" />
                 </a>
               </div>
             </div>
