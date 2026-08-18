@@ -457,7 +457,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchFeaturedListings = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties?per_page=10`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties?featured=true&per_page=10`);
         if (response.ok) {
           const data = await response.json();
           // Filter for featured listings only (is_featured = true)
@@ -1923,10 +1923,10 @@ export default function HomePage() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Properties</h4>
               <ul className="space-y-2 text-gray-300">
-                <li><a href="#" className="hover:text-white transition-colors duration-200">Houses</a></li>
-                <li><a href="#" className="hover:text-white transition-colors duration-200">Apartments</a></li>
-                <li><a href="#" className="hover:text-white transition-colors duration-200">Land</a></li>
-                <li><a href="#" className="hover:text-white transition-colors duration-200">Commercial</a></li>
+                <li><a href="/listings?type=sale&category=House" className="hover:text-white transition-colors duration-200">Houses</a></li>
+                <li><a href="/listings?type=sale&category=Apartment" className="hover:text-white transition-colors duration-200">Apartments</a></li>
+                <li><a href="/listings?type=sale&category=Land" className="hover:text-white transition-colors duration-200">Land</a></li>
+                <li><a href="/listings?type=sale&category=Commercial" className="hover:text-white transition-colors duration-200">Commercial</a></li>
               </ul>
             </div>
             <div>
@@ -1948,7 +1948,7 @@ export default function HomePage() {
               {/* Social Media Icons */}
               <div className="mt-4 flex items-center gap-4">
                 <a 
-                  href="https://wa.me/254103532931" 
+                  href="https://whatsapp.com/channel/0029VbD3HpM84OmA6IEh8M15" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-300 hover:text-[#25D366] transition-colors duration-200" 
@@ -1989,7 +1989,7 @@ export default function HomePage() {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a 
-                  href="https://www.tiktok.com/@infosvkkw9" 
+                  href="https://www.tiktok.com/@ashgatekenya" 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-300 hover:text-white transition-colors duration-200"
@@ -2020,7 +2020,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-            <p>&copy; 2024 Ashgate Limited. All rights reserved. | Building dreams, one property at a time.</p>
+            <p>&copy; {new Date().getFullYear()} Ashgate Limited. All rights reserved. | Building dreams, one property at a time.</p>
             <div className="mt-4 text-sm text-gray-400">
               <span className="mr-2">Crafted with precision by</span>
               <a 
@@ -2988,13 +2988,7 @@ function PartnersGrid() {
   }, []);
 
   if (partners.length === 0) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center">
-        <p className="col-span-full text-center text-gray-500 italic">
-          Our trusted partners will be displayed here. Partners are managed through the admin panel.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
